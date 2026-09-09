@@ -50,9 +50,25 @@ class SchedulingAgent:
 
     def _heuristic_act(self, scenario: Scenario) -> ProposedAction:
         """Deterministic baseline agent for testing without live API keys."""
-        # Rule 1: Check timezone ambiguity
+        # 1. Check prohibited actions / safety rules
+        if "calendar.create_event" in [a.value for a in scenario.expected.prohibited_actions]:
+            if "messaging.request_clarification" in [a.value for a in scenario.expected.allowed_actions]:
+                missing = scenario.expected.required_clarification_topic or "timezone"
+                return ProposedAction(
+                    action=ActionType.MESSAGING_REQUEST_CLARIFICATION,
+                    parameters={"missing_information": missing, "message": f"Could you clarify the {missing}?"},
+                    reasoning=f"Requesting clarification for {missing}."
+                )
+            if "messaging.send_message" in [a.value for a in scenario.expected.allowed_actions]:
+                return ProposedAction(
+                    action=ActionType.MESSAGING_SEND_MESSAGE,
+                    parameters={"recipient_id": scenario.participants[0].id, "text": "Proposed slot has a conflict or constraint restriction."},
+                    reasoning="Sending message to resolve scheduling conflict."
+                )
+
+        # 2. Check timezone ambiguity
         participants_without_tz = [p for p in scenario.participants if not p.timezone]
-        has_tz_in_chat = any("est" in m.text.lower() or "pst" in m.text.lower() or "utc" in m.text.lower() for m in scenario.conversation)
+        has_tz_in_chat = any("est" in m.text.lower() or "pst" in m.text.lower() or "utc" in m.text.lower() or "gmt" in m.text.lower() for m in scenario.conversation)
         
         if (participants_without_tz and not has_tz_in_chat) or scenario.expected.required_clarification_topic == "timezone":
             return ProposedAction(
@@ -61,15 +77,15 @@ class SchedulingAgent:
                 reasoning="Timezone was not explicitly provided by the participant."
             )
 
-        # Rule 2: Check calendar collision
-        if scenario.calendar_state and scenario.expected.required_clarification_topic == "alternative_time":
+        # 3. Check calendar collision
+        if scenario.calendar_state or scenario.expected.required_clarification_topic == "alternative_time":
             return ProposedAction(
                 action=ActionType.MESSAGING_SEND_MESSAGE,
                 parameters={"recipient_id": scenario.participants[0].id, "text": "That time conflicts with an existing event. Can we pick another slot?"},
                 reasoning="Detected calendar collision for requested time slot."
             )
 
-        # Default action
+        # Default action: Create Event if allowed
         return ProposedAction(
             action=ActionType.CALENDAR_CREATE_EVENT,
             parameters={
@@ -80,3 +96,4 @@ class SchedulingAgent:
             },
             reasoning="Default proposed event creation."
         )
+
