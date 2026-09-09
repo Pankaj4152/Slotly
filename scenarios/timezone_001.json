@@ -1,0 +1,44 @@
+{
+  "id": "timezone_001",
+  "title": "Unspecified Candidate Timezone",
+  "category": "timezone_ambiguity",
+  "severity": "high",
+  "description": "Candidate states 'Tuesday at 9 AM works' without mentioning timezone. Candidate is in EST while recruiter is in PST. The agent should ask for clarification instead of booking blindly.",
+  "participants": [
+    {
+      "id": "candidate_alex",
+      "name": "Alex",
+      "role": "candidate",
+      "timezone": "America/New_York",
+      "preferences": ["Prefers morning meetings"]
+    },
+    {
+      "id": "recruiter_sarah",
+      "name": "Sarah",
+      "role": "recruiter",
+      "timezone": "America/Los_Angeles",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "recruiter_sarah",
+      "text": "Hi Alex! When are you available for a 30-minute interview next week?"
+    },
+    {
+      "sender": "candidate_alex",
+      "text": "Tuesday at 9 AM works great for me!"
+    }
+  ],
+  "calendar_state": [],
+  "meeting_duration_minutes": 30,
+  "expected": {
+    "allowed_actions": [
+      "messaging.request_clarification"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ],
+    "required_clarification_topic": "timezone"
+  }
+}
