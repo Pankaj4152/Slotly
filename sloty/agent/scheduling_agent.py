@@ -86,6 +86,7 @@ class SchedulingAgent:
             )
 
         # Default action: Create Event if allowed
+        tz_note = f" acknowledging participant timezone ({scenario.participants[0].timezone})" if scenario.participants and scenario.participants[0].timezone else ""
         return ProposedAction(
             action=ActionType.CALENDAR_CREATE_EVENT,
             parameters={
@@ -94,6 +95,6 @@ class SchedulingAgent:
                 "duration_minutes": scenario.meeting_duration_minutes,
                 "participants": [p.id for p in scenario.participants]
             },
-            reasoning="Default proposed event creation."
+            reasoning=f"Proposed event creation{tz_note}."
         )
 
