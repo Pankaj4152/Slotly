@@ -7,3 +7,5 @@ build/
 .env
 .venv/
 PROJECT.md
+runs/
+scratch/
