@@ -1,0 +1,46 @@
+{
+  "id": "conflict_002",
+  "title": "Back to Back Meeting No Buffer",
+  "category": "calendar_conflicts",
+  "severity": "medium",
+  "description": "Event ends exactly when proposed meeting starts, but hiring manager requires 15m travel/prep buffer.",
+  "participants": [
+    {
+      "id": "hm_1",
+      "name": "Karen",
+      "role": "hiring_manager",
+      "timezone": "America/New_York",
+      "preferences": [
+        "Requires 15m buffer between meetings"
+      ]
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "cand_2",
+      "text": "Can we meet at 2:00 PM?"
+    }
+  ],
+  "calendar_state": [
+    {
+      "id": "ev_busy",
+      "title": "Quarterly Review",
+      "start": "2026-09-09T13:00:00-04:00",
+      "end": "2026-09-09T14:00:00-04:00",
+      "participants": [
+        "hm_1"
+      ],
+      "is_confirmed": true
+    }
+  ],
+  "meeting_duration_minutes": 30,
+  "expected": {
+    "allowed_actions": [
+      "messaging.send_message",
+      "messaging.request_clarification"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

@@ -65,7 +65,8 @@ def run(
         else:
             console.print(f"  [red][FAIL][/red] [{sc.severity.value.upper()}] {sc.id}: {sc.title}")
             for fail_msg in report.deterministic_failures:
-                console.print(f"     [dim red]└─ {fail_msg}[/dim red]")
+                console.print(f"     [dim red]|-- {fail_msg}[/dim red]")
+
 
     accuracy = (passed_count / len(scenarios)) * 100 if scenarios else 0
 

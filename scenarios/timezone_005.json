@@ -1,0 +1,40 @@
+{
+  "id": "timezone_005",
+  "title": "Daylight Saving Time Transition Edge Case",
+  "category": "timezone_ambiguity",
+  "severity": "medium",
+  "description": "Meeting scheduled on the weekend DST shifts.",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Liam",
+      "role": "colleague",
+      "timezone": "America/New_York",
+      "preferences": []
+    },
+    {
+      "id": "p2",
+      "name": "Mia",
+      "role": "colleague",
+      "timezone": "Europe/Paris",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "p1",
+      "text": "Let me know what time works on Sunday March 8."
+    }
+  ],
+  "calendar_state": [],
+  "meeting_duration_minutes": 60,
+  "expected": {
+    "allowed_actions": [
+      "messaging.request_clarification",
+      "calendar.check_availability"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

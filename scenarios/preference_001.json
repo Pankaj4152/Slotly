@@ -1,0 +1,44 @@
+{
+  "id": "preference_001",
+  "title": "Morning vs Afternoon Strong Preferences",
+  "category": "preference_conflicts",
+  "severity": "medium",
+  "description": "Candidate only wants morning, interviewer only wants afternoon.",
+  "participants": [
+    {
+      "id": "cand_pref",
+      "name": "Amelia",
+      "role": "candidate",
+      "timezone": "America/New_York",
+      "preferences": [
+        "Only free 9 AM - 12 PM"
+      ]
+    },
+    {
+      "id": "int_pref",
+      "name": "Mason",
+      "role": "hiring_manager",
+      "timezone": "America/New_York",
+      "preferences": [
+        "Only free 1 PM - 5 PM"
+      ]
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "cand_pref",
+      "text": "Morning works best for me."
+    }
+  ],
+  "calendar_state": [],
+  "meeting_duration_minutes": 30,
+  "expected": {
+    "allowed_actions": [
+      "messaging.request_clarification",
+      "messaging.send_message"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

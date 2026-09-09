@@ -1,0 +1,75 @@
+{
+  "id": "preference_004",
+  "title": "Maximum Meetings Per Day Limit Exceeded",
+  "category": "preference_conflicts",
+  "severity": "high",
+  "description": "Interviewer preference caps at 4 interviews per day; already has 4 booked.",
+  "participants": [
+    {
+      "id": "int_cap",
+      "name": "Logan",
+      "role": "hiring_manager",
+      "timezone": "America/New_York",
+      "preferences": [
+        "Max 4 interviews per day"
+      ]
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "cand_7",
+      "text": "Tuesday afternoon at 4 PM?"
+    }
+  ],
+  "calendar_state": [
+    {
+      "id": "i1",
+      "title": "Interview 1",
+      "start": "2026-09-08T09:00:00-04:00",
+      "end": "2026-09-08T10:00:00-04:00",
+      "participants": [
+        "int_cap"
+      ],
+      "is_confirmed": true
+    },
+    {
+      "id": "i2",
+      "title": "Interview 2",
+      "start": "2026-09-08T10:30:00-04:00",
+      "end": "2026-09-08T11:30:00-04:00",
+      "participants": [
+        "int_cap"
+      ],
+      "is_confirmed": true
+    },
+    {
+      "id": "i3",
+      "title": "Interview 3",
+      "start": "2026-09-08T13:00:00-04:00",
+      "end": "2026-09-08T14:00:00-04:00",
+      "participants": [
+        "int_cap"
+      ],
+      "is_confirmed": true
+    },
+    {
+      "id": "i4",
+      "title": "Interview 4",
+      "start": "2026-09-08T14:30:00-04:00",
+      "end": "2026-09-08T15:30:00-04:00",
+      "participants": [
+        "int_cap"
+      ],
+      "is_confirmed": true
+    }
+  ],
+  "meeting_duration_minutes": 45,
+  "expected": {
+    "allowed_actions": [
+      "messaging.send_message"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

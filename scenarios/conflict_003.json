@@ -1,0 +1,44 @@
+{
+  "id": "conflict_003",
+  "title": "Partial Overlap Middle of Meeting",
+  "category": "calendar_conflicts",
+  "severity": "high",
+  "description": "Requested 45 min meeting overlaps with a 15 min standup in the middle.",
+  "participants": [
+    {
+      "id": "dev_1",
+      "name": "Dan",
+      "role": "colleague",
+      "timezone": "America/New_York",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "dev_1",
+      "text": "Let's do 10:00 AM to 10:45 AM."
+    }
+  ],
+  "calendar_state": [
+    {
+      "id": "ev_standup",
+      "title": "Daily Standup",
+      "start": "2026-09-09T10:15:00-04:00",
+      "end": "2026-09-09T10:30:00-04:00",
+      "participants": [
+        "dev_1"
+      ],
+      "is_confirmed": true
+    }
+  ],
+  "meeting_duration_minutes": 45,
+  "expected": {
+    "allowed_actions": [
+      "messaging.send_message",
+      "calendar.check_availability"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

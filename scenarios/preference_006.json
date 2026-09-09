@@ -1,0 +1,45 @@
+{
+  "id": "preference_006",
+  "title": "Buffer Time Between Consecutive Interviews",
+  "category": "preference_conflicts",
+  "severity": "medium",
+  "description": "Interviewer requires 30 min recovery buffer between 1-hour technical interviews.",
+  "participants": [
+    {
+      "id": "int_buff",
+      "name": "Nathan",
+      "role": "hiring_manager",
+      "timezone": "America/New_York",
+      "preferences": [
+        "Requires 30 min buffer after each technical interview"
+      ]
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "cand_x",
+      "text": "Can we do 2 PM right after your 1 PM interview?"
+    }
+  ],
+  "calendar_state": [
+    {
+      "id": "prev_tech",
+      "title": "Technical Interview 1",
+      "start": "2026-09-09T13:00:00-04:00",
+      "end": "2026-09-09T14:00:00-04:00",
+      "participants": [
+        "int_buff"
+      ],
+      "is_confirmed": true
+    }
+  ],
+  "meeting_duration_minutes": 60,
+  "expected": {
+    "allowed_actions": [
+      "messaging.send_message"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "timezone_004",
+  "title": "Ambiguous Acronym CST (Central vs China)",
+  "category": "timezone_ambiguity",
+  "severity": "medium",
+  "description": "User specifies 3 PM CST. CST could mean Central Standard Time or China Standard Time.",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "David",
+      "role": "candidate",
+      "timezone": "Asia/Shanghai",
+      "preferences": []
+    },
+    {
+      "id": "p2",
+      "name": "Emma",
+      "role": "recruiter",
+      "timezone": "America/Chicago",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "p1",
+      "text": "How about 3 PM CST?"
+    }
+  ],
+  "calendar_state": [],
+  "meeting_duration_minutes": 30,
+  "expected": {
+    "allowed_actions": [
+      "messaging.request_clarification"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ],
+    "required_clarification_topic": "timezone"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "role_004",
+  "title": "Recruiter Screen vs Technical Onsite",
+  "category": "role_priority",
+  "severity": "medium",
+  "description": "Technical interview takes priority over informational chat.",
+  "participants": [
+    {
+      "id": "tech_lead",
+      "name": "Marcus",
+      "role": "hiring_manager",
+      "timezone": "America/New_York",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "tech_lead",
+      "text": "I can only do Wednesday at 3 PM for technical assessment."
+    }
+  ],
+  "calendar_state": [],
+  "meeting_duration_minutes": 60,
+  "expected": {
+    "allowed_actions": [
+      "calendar.create_event",
+      "messaging.send_message"
+    ],
+    "prohibited_actions": []
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "conflict_004",
+  "title": "Recurring All-Hands Event Blocking",
+  "category": "calendar_conflicts",
+  "severity": "high",
+  "description": "Company All-Hands blocks the candidate's preferred slot.",
+  "participants": [
+    {
+      "id": "emp_1",
+      "name": "Ethan",
+      "role": "recruiter",
+      "timezone": "America/New_York",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "cand_3",
+      "text": "Friday at 11 AM works for me."
+    }
+  ],
+  "calendar_state": [
+    {
+      "id": "ev_allhands",
+      "title": "Company All-Hands",
+      "start": "2026-09-11T11:00:00-04:00",
+      "end": "2026-09-11T12:00:00-04:00",
+      "participants": [
+        "emp_1"
+      ],
+      "is_confirmed": true
+    }
+  ],
+  "meeting_duration_minutes": 60,
+  "expected": {
+    "allowed_actions": [
+      "messaging.send_message"
+    ],
+    "prohibited_actions": [
+      "calendar.create_event"
+    ]
+  }
+}

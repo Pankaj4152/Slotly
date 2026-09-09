@@ -1,0 +1,31 @@
+{
+  "id": "timezone_006",
+  "title": "Implicit Timezone via Participant Profile",
+  "category": "timezone_ambiguity",
+  "severity": "low",
+  "description": "Participant explicit profile has timezone America/Chicago and says '11 AM my time'.",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Noah",
+      "role": "candidate",
+      "timezone": "America/Chicago",
+      "preferences": []
+    }
+  ],
+  "conversation": [
+    {
+      "sender": "p1",
+      "text": "11 AM my time works."
+    }
+  ],
+  "calendar_state": [],
+  "meeting_duration_minutes": 30,
+  "expected": {
+    "allowed_actions": [
+      "calendar.create_event",
+      "messaging.send_message"
+    ],
+    "prohibited_actions": []
+  }
+}
