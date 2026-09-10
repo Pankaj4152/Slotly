@@ -149,6 +149,7 @@ export const candidateReasonSchema = z.object({
     'travel_buffer',
     'outside_meeting_window',
     'movable_event',
+    'optional_attendee_conflict',
     'preference_match',
   ]),
   message: z.string().trim().min(1),
@@ -377,6 +378,7 @@ export type CalendarEvent = z.infer<typeof calendarEventSchema>;
 export type MeetingRequest = z.infer<typeof meetingRequestSchema>;
 export type Preference = z.infer<typeof preferenceSchema>;
 export type CandidateSlot = z.infer<typeof candidateSlotSchema>;
+export type CandidateReason = z.infer<typeof candidateReasonSchema>;
 export type SchedulingDecision = z.infer<typeof schedulingDecisionSchema>;
 export type ExpectedOutcome = z.infer<typeof expectedOutcomeSchema>;
 export type ScenarioInput = z.infer<typeof scenarioInputSchema>;

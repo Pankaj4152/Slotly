@@ -21,6 +21,7 @@ export {
 
 export type {
   CalendarEvent,
+  CandidateReason,
   CandidateSlot,
   ConversationMessage,
   ExpectedOutcome,
