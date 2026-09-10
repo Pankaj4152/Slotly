@@ -58,9 +58,10 @@ in a longer interview discussion.
 
 ## Technical shape
 
-Use a single Next.js and TypeScript application.
+Use a single Next.js-compatible TypeScript application built with Vinext for
+the deployment environment.
 
-- Next.js App Router
+- Next.js App Router APIs through Vinext
 - TypeScript
 - Tailwind CSS
 - Zod for all boundary validation
