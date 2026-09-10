@@ -155,6 +155,7 @@ export const candidateReasonSchema = z.object({
     'protected_event',
     'safe_candidate',
     'no_valid_slot',
+    'final_validation_failed',
   ]),
   message: z.string().trim().min(1),
   participantId: identifier.optional(),
