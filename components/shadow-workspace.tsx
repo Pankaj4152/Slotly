@@ -22,18 +22,28 @@ import Link from 'next/link';
 import type { ScenarioInput } from '../lib/domain';
 import type { ShadowRun } from '../lib/shadow';
 
-type ShadowWorkspaceProps = { scenario: ScenarioInput };
+type ShadowWorkspaceProps = { scenarios: readonly ScenarioInput[] };
 
-export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
+export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
+  const [selectedScenarioId, setSelectedScenarioId] = useState(
+    scenarios[0]?.id,
+  );
   const [run, setRun] = useState<ShadowRun>();
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string>();
+
+  const scenario = scenarios.find(({ id }) => id === selectedScenarioId);
+  if (!scenario) throw new Error('Shadow requires at least one scenario.');
 
   async function execute() {
     setRunning(true);
     setError(undefined);
     try {
-      const response = await fetch('/api/run', { method: 'POST' });
+      const response = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario }),
+      });
       if (!response.ok)
         throw new Error('The evaluation service did not respond.');
       setRun((await response.json()) as ShadowRun);
@@ -44,6 +54,12 @@ export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
     } finally {
       setRunning(false);
     }
+  }
+
+  function selectScenario(id: string) {
+    setSelectedScenarioId(id);
+    setRun(undefined);
+    setError(undefined);
   }
 
   return (
@@ -94,19 +110,37 @@ export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
 
       <div className="mx-auto max-w-[1480px] px-4 py-5 sm:px-6">
         <section className="mb-5 flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm sm:flex-row sm:items-center">
-          <div>
+          <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent-foreground">
               <CircleDot aria-hidden="true" className="size-3.5" />
-              Shadow scenario 01
+              Interactive scenario
             </div>
             <h1 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
               {scenario.title}
             </h1>
           </div>
+          <label className="min-w-[260px] sm:ml-auto">
+            <span className="sr-only">Choose a scheduling scenario</span>
+            <select
+              className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+              onChange={(event) => selectScenario(event.target.value)}
+              value={scenario.id}
+            >
+              {scenarios.map((option, index) => (
+                <option key={option.id} value={option.id}>
+                  {index + 1}. {option.title}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <Pill icon={Clock3}>30 minutes</Pill>
-            <Pill icon={MapPin}>New York · EDT</Pill>
-            <Pill icon={UserRound}>2 required participants</Pill>
+            <Pill icon={Clock3}>
+              {scenario.meetingRequest.durationMinutes} minutes
+            </Pill>
+            <Pill icon={MapPin}>{scenario.displayTimezone}</Pill>
+            <Pill icon={UserRound}>
+              {scenario.meetingRequest.participantIds.length} participants
+            </Pill>
           </div>
         </section>
 
@@ -147,11 +181,22 @@ export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
                     </span>
                   </div>
                 ))}
+                {scenario.preferences.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No additional policies are active for this scenario.
+                  </p>
+                ) : null}
               </div>
             </div>
           </Panel>
 
-          <Panel title="Thursday, September 17" eyebrow="Calendar context">
+          <Panel
+            title={formatDate(
+              scenario.meetingRequest.windowStartsAt,
+              scenario.displayTimezone,
+            )}
+            eyebrow="Calendar context"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex -space-x-2">
                 {scenario.participants.slice(0, 3).map((person) => (
@@ -159,7 +204,7 @@ export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
                 ))}
               </div>
               <span className="text-xs text-muted-foreground">
-                America/New_York
+                {scenario.displayTimezone}
               </span>
             </div>
 
@@ -194,6 +239,11 @@ export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
                   </div>
                 </div>
               ))}
+              {scenario.calendarEvents.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  No calendar events in this scenario.
+                </p>
+              ) : null}
             </div>
 
             {run ? (
@@ -314,11 +364,25 @@ function DecisionState({
   timezone: string;
 }) {
   const selected = run.decision.selectedSlot;
+  const isAct = run.decision.action === 'ACT';
+  const isAsk = run.decision.action === 'ASK';
+  const tone = isAct
+    ? 'border-emerald-200 bg-emerald-50'
+    : isAsk
+      ? 'border-amber-200 bg-amber-50'
+      : 'border-rose-200 bg-rose-50';
+  const badge = isAct
+    ? 'bg-emerald-700'
+    : isAsk
+      ? 'bg-amber-700'
+      : 'bg-rose-700';
   return (
     <div>
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+      <div className={`rounded-2xl border p-5 ${tone}`}>
         <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-emerald-700 px-2.5 py-1 font-mono text-xs font-bold text-white">
+          <span
+            className={`rounded-full px-2.5 py-1 font-mono text-xs font-bold text-white ${badge}`}
+          >
             {run.decision.action}
           </span>
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
@@ -335,9 +399,14 @@ function DecisionState({
               {formatTime(selected.endsAt, timezone)}
             </p>
             <p className="mt-1 text-sm text-emerald-900/70">
-              Thursday · September 17
+              {formatDate(selected.startsAt, timezone)}
             </p>
           </div>
+        ) : null}
+        {!selected ? (
+          <p className="mt-4 text-sm leading-6 text-foreground/75">
+            {run.decision.clarificationQuestion ?? run.decision.reason}
+          </p>
         ) : null}
       </div>
 
@@ -444,6 +513,15 @@ function formatTime(instant: string, timeZone: string) {
   }).format(new Date(instant));
 }
 
+function formatDate(instant: string, timeZone: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(instant));
+}
+
 function humanize(value: string) {
   return value
     .replaceAll('_', ' ')
@@ -451,10 +529,18 @@ function humanize(value: string) {
 }
 
 function headlineCandidates(run: ShadowRun) {
-  const starts = new Set([
-    '2026-09-17T18:15:00.000Z',
-    '2026-09-17T19:30:00.000Z',
-    '2026-09-17T20:15:00.000Z',
-  ]);
-  return run.candidates.filter(({ startsAt }) => starts.has(startsAt));
+  const selectedStart = run.decision.selectedSlot?.startsAt;
+  const selected = run.candidates.find(
+    ({ startsAt }) => startsAt === selectedStart,
+  );
+  const rejected = run.candidates.find(({ status }) => status === 'rejected');
+  const alternatives = run.candidates.filter(
+    (candidate) => candidate !== selected && candidate !== rejected,
+  );
+  return [rejected, selected, ...alternatives]
+    .filter(
+      (candidate): candidate is ShadowRun['candidates'][number] =>
+        candidate !== undefined,
+    )
+    .slice(0, 3);
 }
