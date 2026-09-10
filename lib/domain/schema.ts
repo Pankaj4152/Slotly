@@ -1,0 +1,228 @@
+import { z } from 'zod';
+
+const identifier = z
+  .string()
+  .trim()
+  .min(1)
+  .regex(/^[a-z0-9]+(?:_[a-z0-9]+)*$/, 'Use a lowercase snake_case identifier');
+
+const isoDateTime = z.iso.datetime({ offset: true });
+
+const timeZone = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: value });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Use a valid IANA timezone' },
+  );
+
+export const participantRoleSchema = z.enum([
+  'candidate',
+  'recruiter',
+  'executive',
+  'interviewer',
+  'assistant',
+  'optional_attendee',
+]);
+
+export const participantSchema = z.object({
+  id: identifier,
+  name: z.string().trim().min(1),
+  role: participantRoleSchema,
+  timezone: timeZone,
+  required: z.boolean().default(true),
+});
+
+export const conversationMessageSchema = z.object({
+  id: identifier,
+  participantId: identifier,
+  sentAt: isoDateTime,
+  body: z.string().trim().min(1),
+});
+
+export const eventKindSchema = z.enum([
+  'internal',
+  'client',
+  'interview',
+  'travel',
+  'personal',
+]);
+
+export const calendarEventSchema = z
+  .object({
+    id: identifier,
+    participantId: identifier,
+    title: z.string().trim().min(1),
+    startsAt: isoDateTime,
+    endsAt: isoDateTime,
+    kind: eventKindSchema,
+    movable: z.boolean().default(false),
+  })
+  .refine((event) => Date.parse(event.endsAt) > Date.parse(event.startsAt), {
+    message: 'Event must end after it starts',
+    path: ['endsAt'],
+  });
+
+export const meetingTypeSchema = z.enum([
+  'candidate_interview',
+  'client_call',
+  'internal_meeting',
+  'other',
+]);
+
+export const meetingRequestSchema = z
+  .object({
+    id: identifier,
+    title: z.string().trim().min(1),
+    participantIds: z.array(identifier).min(2),
+    durationMinutes: z.number().int().positive().max(480),
+    windowStartsAt: isoDateTime,
+    windowEndsAt: isoDateTime,
+    meetingType: meetingTypeSchema,
+  })
+  .refine(
+    (request) =>
+      Date.parse(request.windowEndsAt) > Date.parse(request.windowStartsAt),
+    {
+      message: 'Meeting window must end after it starts',
+      path: ['windowEndsAt'],
+    },
+  )
+  .refine(
+    (request) =>
+      new Set(request.participantIds).size === request.participantIds.length,
+    {
+      message: 'Meeting participants must be unique',
+      path: ['participantIds'],
+    },
+  );
+
+const preferenceBaseSchema = z.object({
+  id: identifier,
+  description: z.string().trim().min(1),
+});
+
+export const preferenceSchema = z.discriminatedUnion('type', [
+  preferenceBaseSchema.extend({
+    type: z.literal('travel_buffer'),
+    participantId: identifier,
+    afterEventKind: z.literal('travel'),
+    minutes: z.number().int().nonnegative().max(480),
+  }),
+  preferenceBaseSchema.extend({
+    type: z.literal('event_priority'),
+    preferredMeetingType: meetingTypeSchema,
+    displaceableEventKind: eventKindSchema,
+  }),
+  preferenceBaseSchema.extend({
+    type: z.literal('working_hours'),
+    participantId: identifier,
+    startLocalTime: z.iso.time({ precision: -1 }),
+    endLocalTime: z.iso.time({ precision: -1 }),
+  }),
+  preferenceBaseSchema.extend({
+    type: z.literal('protected_event'),
+    eventKind: eventKindSchema,
+  }),
+]);
+
+export const candidateStatusSchema = z.enum([
+  'available',
+  'rejected',
+  'requires_move',
+]);
+
+export const candidateReasonSchema = z.object({
+  code: z.enum([
+    'calendar_conflict',
+    'outside_working_hours',
+    'travel_buffer',
+    'outside_meeting_window',
+    'movable_event',
+    'preference_match',
+  ]),
+  message: z.string().trim().min(1),
+  participantId: identifier.optional(),
+  eventId: identifier.optional(),
+});
+
+export const candidateSlotSchema = z
+  .object({
+    startsAt: isoDateTime,
+    endsAt: isoDateTime,
+    status: candidateStatusSchema,
+    score: z.number(),
+    reasons: z.array(candidateReasonSchema),
+  })
+  .refine((slot) => Date.parse(slot.endsAt) > Date.parse(slot.startsAt), {
+    message: 'Candidate slot must end after it starts',
+    path: ['endsAt'],
+  })
+  .refine((slot) => slot.status !== 'rejected' || slot.reasons.length > 0, {
+    message: 'Rejected candidates require at least one reason',
+    path: ['reasons'],
+  });
+
+export const decisionActionSchema = z.enum(['ACT', 'ASK', 'STOP']);
+
+export const schedulingDecisionSchema = z
+  .object({
+    action: decisionActionSchema,
+    selectedSlot: candidateSlotSchema.optional(),
+    clarificationQuestion: z.string().trim().min(1).optional(),
+    reason: z.string().trim().min(1),
+    evidence: z.array(candidateReasonSchema).min(1),
+  })
+  .superRefine((decision, context) => {
+    if (decision.action === 'ACT' && !decision.selectedSlot) {
+      context.addIssue({
+        code: 'custom',
+        message: 'ACT requires a selected slot',
+        path: ['selectedSlot'],
+      });
+    }
+
+    if (
+      decision.action === 'ACT' &&
+      decision.selectedSlot?.status === 'rejected'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'ACT cannot select a rejected slot',
+        path: ['selectedSlot'],
+      });
+    }
+
+    if (decision.action === 'ASK' && !decision.clarificationQuestion) {
+      context.addIssue({
+        code: 'custom',
+        message: 'ASK requires a clarification question',
+        path: ['clarificationQuestion'],
+      });
+    }
+
+    if (decision.action !== 'ACT' && decision.selectedSlot) {
+      context.addIssue({
+        code: 'custom',
+        message: `${decision.action} cannot include a selected slot`,
+        path: ['selectedSlot'],
+      });
+    }
+  });
+
+export type ParticipantRole = z.infer<typeof participantRoleSchema>;
+export type Participant = z.infer<typeof participantSchema>;
+export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
+export type CalendarEvent = z.infer<typeof calendarEventSchema>;
+export type MeetingRequest = z.infer<typeof meetingRequestSchema>;
+export type Preference = z.infer<typeof preferenceSchema>;
+export type CandidateSlot = z.infer<typeof candidateSlotSchema>;
+export type SchedulingDecision = z.infer<typeof schedulingDecisionSchema>;
