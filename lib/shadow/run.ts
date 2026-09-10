@@ -30,6 +30,15 @@ export async function runShadowScenario(
   scenario: ScenarioInput,
   provider?: ModelProvider,
 ): Promise<ShadowRun> {
+  if (!provider && hasCustomConversation(scenario)) {
+    return clarificationRun(
+      scenario,
+      createDeterministicIntent(scenario),
+      new Error(
+        'Custom conversation context needs a configured model before it can change the meeting request.',
+      ),
+    );
+  }
   if (!provider)
     return deterministicRun(scenario, 'Running deterministic demo mode.');
 
@@ -64,6 +73,12 @@ export async function runShadowScenario(
       'Intent extraction failed; deterministic safety path used.',
     );
   }
+}
+
+function hasCustomConversation(scenario: ScenarioInput): boolean {
+  return scenario.conversation.some(({ id }) =>
+    id.startsWith('custom_message_'),
+  );
 }
 
 function clarificationRun(

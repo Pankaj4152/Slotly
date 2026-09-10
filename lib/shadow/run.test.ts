@@ -29,6 +29,22 @@ describe('runShadowScenario', () => {
     });
   });
 
+  it('asks rather than ignoring custom conversation without a provider', async () => {
+    const customized = structuredClone(scenario);
+    customized.conversation.push({
+      id: 'custom_message_001',
+      participantId: 'alex_recruiter',
+      sentAt: '2026-09-16T16:00:00-04:00',
+      body: 'Please make the interview 45 minutes.',
+    });
+
+    const result = await runShadowScenario(customized);
+
+    expect(result.decision.action).toBe('ASK');
+    expect(result.decision.reason).toContain('configured model');
+    expect(result.notice).toContain('could not be applied safely');
+  });
+
   it('uses the provider for extraction and constrained recommendation', async () => {
     const provider = new FakeModelProvider({
       replies: [
