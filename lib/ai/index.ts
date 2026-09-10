@@ -14,3 +14,11 @@ export type {
   ModelResponse,
   ModelUsage,
 } from './provider';
+export {
+  createDeterministicIntent,
+  extractMeetingIntent,
+  extractedMeetingIntentSchema,
+  IntentExtractionError,
+  serializeIntentContext,
+} from './intent';
+export type { ExtractedMeetingIntent } from './intent';
