@@ -117,6 +117,27 @@ export function createDeterministicIntent(
   });
 }
 
+export function applyExtractedIntent(
+  scenario: ScenarioInput,
+  intent: ExtractedMeetingIntent,
+): ScenarioInput {
+  const validatedScenario = scenarioInputSchema.parse(scenario);
+  const validatedIntent = extractedMeetingIntentSchema.parse(intent);
+
+  return scenarioInputSchema.parse({
+    ...validatedScenario,
+    meetingRequest: {
+      ...validatedScenario.meetingRequest,
+      title: validatedIntent.title,
+      participantIds: validatedIntent.participantIds,
+      durationMinutes: validatedIntent.durationMinutes,
+      windowStartsAt: validatedIntent.windowStartsAt,
+      windowEndsAt: validatedIntent.windowEndsAt,
+      meetingType: validatedIntent.meetingType,
+    },
+  });
+}
+
 export function serializeIntentContext(scenario: ScenarioInput): string {
   return JSON.stringify(
     {

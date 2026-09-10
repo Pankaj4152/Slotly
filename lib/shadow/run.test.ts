@@ -50,6 +50,37 @@ describe('runShadowScenario', () => {
     expect(result.validation.status).toBe('VALID');
   });
 
+  it('generates slots from conversation-derived intent', async () => {
+    const updatedIntent = {
+      ...intent,
+      durationMinutes: 45,
+      windowStartsAt: '2026-09-17T15:00:00-04:00',
+      windowEndsAt: '2026-09-17T16:00:00-04:00',
+    };
+    const provider = new FakeModelProvider({
+      replies: [
+        { text: JSON.stringify(updatedIntent), model: 'fake' },
+        {
+          text: JSON.stringify({
+            action: 'ACT',
+            candidateId: 'candidate_0',
+            reason: 'Use the conversation-derived request.',
+          }),
+          model: 'fake',
+        },
+      ],
+    });
+
+    const result = await runShadowScenario(scenario, provider);
+
+    expect(result.intent.durationMinutes).toBe(45);
+    expect(result.candidates).toHaveLength(2);
+    expect(result.candidates[0]).toMatchObject({
+      startsAt: '2026-09-17T19:00:00.000Z',
+      endsAt: '2026-09-17T19:45:00.000Z',
+    });
+  });
+
   it('falls back safely when intent extraction fails', async () => {
     const provider = new FakeModelProvider({
       replies: [{ text: 'invalid', model: 'fake' }],

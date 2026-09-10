@@ -4,14 +4,16 @@ import fixtureJson from '../../data/scenarios/flight_buffer.json';
 import { loadScenarioFixture } from '../domain';
 import { FakeModelProvider } from './fake-provider';
 import {
+  applyExtractedIntent,
   createDeterministicIntent,
   extractMeetingIntent,
+  type ExtractedMeetingIntent,
   IntentExtractionError,
   serializeIntentContext,
 } from './intent';
 
 const fixture = loadScenarioFixture(fixtureJson, 'flight_buffer.json');
-const validIntent = {
+const validIntent: ExtractedMeetingIntent = {
   title: 'Maya Chen candidate interview',
   participantIds: ['maya_candidate', 'jane_partner'],
   durationMinutes: 30,
@@ -105,5 +107,36 @@ describe('intent context isolation', () => {
       windowStartsAt: '2026-09-17T18:15:00.000Z',
       windowEndsAt: '2026-09-17T21:00:00.000Z',
     });
+  });
+});
+
+describe('applyExtractedIntent', () => {
+  it('updates only the meeting request used by scheduling', () => {
+    const effective = applyExtractedIntent(fixture.input, {
+      ...validIntent,
+      title: 'Updated interview request',
+      durationMinutes: 45,
+      windowStartsAt: '2026-09-17T15:00:00-04:00',
+      windowEndsAt: '2026-09-17T16:00:00-04:00',
+    });
+
+    expect(effective.meetingRequest).toMatchObject({
+      title: 'Updated interview request',
+      durationMinutes: 45,
+      windowStartsAt: '2026-09-17T19:00:00.000Z',
+      windowEndsAt: '2026-09-17T20:00:00.000Z',
+    });
+    expect(effective.calendarEvents).toEqual(fixture.input.calendarEvents);
+    expect(effective.preferences).toEqual(fixture.input.preferences);
+  });
+
+  it('rejects an extracted window that cannot form a valid request', () => {
+    expect(() =>
+      applyExtractedIntent(fixture.input, {
+        ...validIntent,
+        windowStartsAt: '2026-09-17T16:00:00-04:00',
+        windowEndsAt: '2026-09-17T15:00:00-04:00',
+      }),
+    ).toThrow();
   });
 });

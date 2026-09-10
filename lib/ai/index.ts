@@ -15,6 +15,7 @@ export type {
   ModelUsage,
 } from './provider';
 export {
+  applyExtractedIntent,
   createDeterministicIntent,
   extractMeetingIntent,
   extractedMeetingIntentSchema,

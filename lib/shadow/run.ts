@@ -1,4 +1,5 @@
 import {
+  applyExtractedIntent,
   createDeterministicIntent,
   extractMeetingIntent,
   runModelAssistedScheduling,
@@ -30,7 +31,11 @@ export async function runShadowScenario(
 
   try {
     const intent = await extractMeetingIntent(provider, scenario);
-    const assisted = await runModelAssistedScheduling(provider, scenario);
+    const effectiveScenario = applyExtractedIntent(scenario, intent);
+    const assisted = await runModelAssistedScheduling(
+      provider,
+      effectiveScenario,
+    );
     return {
       intent,
       candidates: assisted.candidates,
