@@ -17,6 +17,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 import type { ScenarioInput } from '../lib/domain';
 import type { ShadowRun } from '../lib/shadow';
@@ -61,6 +62,12 @@ export function ShadowWorkspace({ scenario }: ShadowWorkspaceProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              className="hidden text-sm font-medium text-muted-foreground transition hover:text-foreground sm:block"
+              href="/evals"
+            >
+              Evaluation suite
+            </Link>
             <span className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               Synthetic environment
