@@ -12,14 +12,16 @@ import {
   LoaderCircle,
   MapPin,
   Plane,
+  Send,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserRound,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState, type SyntheticEvent } from 'react';
 import Link from 'next/link';
 
-import type { ScenarioInput } from '../lib/domain';
+import type { ConversationMessage, ScenarioInput } from '../lib/domain';
 import type { ShadowRun } from '../lib/shadow';
 
 type ShadowWorkspaceProps = { scenarios: readonly ScenarioInput[] };
@@ -31,9 +33,30 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
   const [run, setRun] = useState<ShadowRun>();
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string>();
+  const [draft, setDraft] = useState('');
+  const [speakerId, setSpeakerId] = useState(
+    scenarios[0]?.participants[0]?.id ?? '',
+  );
+  const [customMessages, setCustomMessages] = useState<
+    Record<string, ConversationMessage[]>
+  >({});
 
-  const scenario = scenarios.find(({ id }) => id === selectedScenarioId);
+  const baseScenario = scenarios.find(({ id }) => id === selectedScenarioId);
+  const scenario = useMemo(
+    () =>
+      baseScenario
+        ? {
+            ...baseScenario,
+            conversation: [
+              ...baseScenario.conversation,
+              ...(customMessages[baseScenario.id] ?? []),
+            ],
+          }
+        : undefined,
+    [baseScenario, customMessages],
+  );
   if (!scenario) throw new Error('Shadow requires at least one scenario.');
+  const scenarioId = scenario.id;
 
   async function execute() {
     setRunning(true);
@@ -58,6 +81,34 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
 
   function selectScenario(id: string) {
     setSelectedScenarioId(id);
+    const nextScenario = scenarios.find((scenario) => scenario.id === id);
+    setSpeakerId(nextScenario?.participants[0]?.id ?? '');
+    setDraft('');
+    setRun(undefined);
+    setError(undefined);
+  }
+
+  function addCustomMessage(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = draft.trim();
+    if (!body || !speakerId) return;
+    const message: ConversationMessage = {
+      id: `custom_message_${Date.now()}`,
+      participantId: speakerId,
+      sentAt: new Date().toISOString(),
+      body,
+    };
+    setCustomMessages((current) => ({
+      ...current,
+      [scenarioId]: [...(current[scenarioId] ?? []), message],
+    }));
+    setDraft('');
+    setRun(undefined);
+    setError(undefined);
+  }
+
+  function clearCustomMessages() {
+    setCustomMessages((current) => ({ ...current, [scenarioId]: [] }));
     setRun(undefined);
     setError(undefined);
   }
@@ -169,6 +220,59 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                 );
               })}
             </div>
+
+            <form
+              className="mt-6 rounded-xl border border-border bg-secondary/45 p-3.5"
+              onSubmit={addCustomMessage}
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <label className="section-label" htmlFor="custom-speaker">
+                  Add custom context
+                </label>
+                {(customMessages[scenario.id]?.length ?? 0) > 0 ? (
+                  <button
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-destructive"
+                    onClick={clearCustomMessages}
+                    type="button"
+                  >
+                    <Trash2 aria-hidden="true" className="size-3.5" />
+                    Clear added
+                  </button>
+                ) : null}
+              </div>
+              <select
+                className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-sm outline-none focus:border-ring"
+                id="custom-speaker"
+                onChange={(event) => setSpeakerId(event.target.value)}
+                value={speakerId}
+              >
+                {scenario.participants.map((participant) => (
+                  <option key={participant.id} value={participant.id}>
+                    {participant.name} · {humanize(participant.role)}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                className="mt-2 min-h-20 w-full resize-y rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5 outline-none placeholder:text-muted-foreground focus:border-ring"
+                maxLength={500}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder="Add availability, a preference, or clarification…"
+                value={draft}
+              />
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {draft.length}/500
+                </span>
+                <button
+                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={!draft.trim()}
+                  type="submit"
+                >
+                  <Send aria-hidden="true" className="size-3.5" />
+                  Add to chat
+                </button>
+              </div>
+            </form>
 
             <div className="mt-7 border-t border-border pt-5">
               <p className="section-label">Active policies</p>
