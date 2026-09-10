@@ -218,6 +218,156 @@ export const schedulingDecisionSchema = z
     }
   });
 
+export const expectedOutcomeSchema = z
+  .object({
+    action: decisionActionSchema,
+    selectedStartsAt: isoDateTime.optional(),
+    clarificationTopic: identifier.optional(),
+    requiredReasonCodes: z.array(candidateReasonSchema.shape.code).default([]),
+    forbiddenActions: z.array(decisionActionSchema).default([]),
+  })
+  .superRefine((outcome, context) => {
+    if (outcome.action === 'ACT' && !outcome.selectedStartsAt) {
+      context.addIssue({
+        code: 'custom',
+        message: 'An expected ACT outcome requires selectedStartsAt',
+        path: ['selectedStartsAt'],
+      });
+    }
+    if (outcome.action === 'ASK' && !outcome.clarificationTopic) {
+      context.addIssue({
+        code: 'custom',
+        message: 'An expected ASK outcome requires a clarification topic',
+        path: ['clarificationTopic'],
+      });
+    }
+    if (outcome.forbiddenActions.includes(outcome.action)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'The expected action cannot also be forbidden',
+        path: ['forbiddenActions'],
+      });
+    }
+  });
+
+const scenarioInputBaseSchema = z.object({
+  id: identifier,
+  title: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+  displayTimezone: timeZone,
+  participants: z.array(participantSchema).min(2),
+  conversation: z.array(conversationMessageSchema).min(1),
+  calendarEvents: z.array(calendarEventSchema),
+  meetingRequest: meetingRequestSchema,
+  preferences: z.array(preferenceSchema),
+});
+
+export const scenarioInputSchema = scenarioInputBaseSchema.superRefine(
+  (scenario, context) => {
+    const participantIds = new Set(scenario.participants.map(({ id }) => id));
+
+    addDuplicateIdIssues(
+      scenario.participants,
+      'Participant IDs must be unique',
+      ['participants'],
+      context,
+    );
+    addDuplicateIdIssues(
+      scenario.conversation,
+      'Conversation message IDs must be unique',
+      ['conversation'],
+      context,
+    );
+    addDuplicateIdIssues(
+      scenario.calendarEvents,
+      'Calendar event IDs must be unique',
+      ['calendarEvents'],
+      context,
+    );
+    addDuplicateIdIssues(
+      scenario.preferences,
+      'Preference IDs must be unique',
+      ['preferences'],
+      context,
+    );
+
+    scenario.conversation.forEach((message, index) => {
+      if (!participantIds.has(message.participantId)) {
+        addMissingReferenceIssue(
+          `Unknown conversation participant: ${message.participantId}`,
+          ['conversation', index, 'participantId'],
+          context,
+        );
+      }
+    });
+
+    scenario.calendarEvents.forEach((event, index) => {
+      if (!participantIds.has(event.participantId)) {
+        addMissingReferenceIssue(
+          `Unknown calendar participant: ${event.participantId}`,
+          ['calendarEvents', index, 'participantId'],
+          context,
+        );
+      }
+    });
+
+    scenario.meetingRequest.participantIds.forEach((participantId, index) => {
+      if (!participantIds.has(participantId)) {
+        addMissingReferenceIssue(
+          `Unknown meeting participant: ${participantId}`,
+          ['meetingRequest', 'participantIds', index],
+          context,
+        );
+      }
+    });
+
+    scenario.preferences.forEach((preference, index) => {
+      if (
+        'participantId' in preference &&
+        !participantIds.has(preference.participantId)
+      ) {
+        addMissingReferenceIssue(
+          `Unknown preference participant: ${preference.participantId}`,
+          ['preferences', index, 'participantId'],
+          context,
+        );
+      }
+    });
+  },
+);
+
+export const scenarioFixtureSchema = z.object({
+  input: scenarioInputSchema,
+  expected: expectedOutcomeSchema,
+});
+
+function addDuplicateIdIssues(
+  values: ReadonlyArray<{ id: string }>,
+  message: string,
+  path: PropertyKey[],
+  context: z.RefinementCtx,
+) {
+  const seen = new Set<string>();
+  values.forEach(({ id }, index) => {
+    if (seen.has(id)) {
+      context.addIssue({
+        code: 'custom',
+        message,
+        path: [...path, index, 'id'],
+      });
+    }
+    seen.add(id);
+  });
+}
+
+function addMissingReferenceIssue(
+  message: string,
+  path: PropertyKey[],
+  context: z.RefinementCtx,
+) {
+  context.addIssue({ code: 'custom', message, path });
+}
+
 export type ParticipantRole = z.infer<typeof participantRoleSchema>;
 export type Participant = z.infer<typeof participantSchema>;
 export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
@@ -226,3 +376,6 @@ export type MeetingRequest = z.infer<typeof meetingRequestSchema>;
 export type Preference = z.infer<typeof preferenceSchema>;
 export type CandidateSlot = z.infer<typeof candidateSlotSchema>;
 export type SchedulingDecision = z.infer<typeof schedulingDecisionSchema>;
+export type ExpectedOutcome = z.infer<typeof expectedOutcomeSchema>;
+export type ScenarioInput = z.infer<typeof scenarioInputSchema>;
+export type ScenarioFixture = z.infer<typeof scenarioFixtureSchema>;

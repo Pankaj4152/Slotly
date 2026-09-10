@@ -1,0 +1,121 @@
+{
+  "input": {
+    "id": "flight_buffer",
+    "title": "Candidate interview after partner travel",
+    "description": "Schedule a candidate interview without violating a partner's post-flight buffer or protected client call.",
+    "displayTimezone": "America/New_York",
+    "participants": [
+      {
+        "id": "maya_candidate",
+        "name": "Maya Chen",
+        "role": "candidate",
+        "timezone": "America/New_York",
+        "required": true
+      },
+      {
+        "id": "jane_partner",
+        "name": "Jane Ellis",
+        "role": "interviewer",
+        "timezone": "America/New_York",
+        "required": true
+      },
+      {
+        "id": "alex_recruiter",
+        "name": "Alex Morgan",
+        "role": "recruiter",
+        "timezone": "America/Chicago",
+        "required": false
+      }
+    ],
+    "conversation": [
+      {
+        "id": "message_001",
+        "participantId": "alex_recruiter",
+        "sentAt": "2026-09-16T10:00:00-05:00",
+        "body": "Can we schedule Maya with Jane tomorrow afternoon? Maya is available before 5 PM Eastern."
+      },
+      {
+        "id": "message_002",
+        "participantId": "jane_partner",
+        "sentAt": "2026-09-16T11:20:00-04:00",
+        "body": "Yes. My flight lands at 2 PM, and the internal sync can move for candidate interviews."
+      }
+    ],
+    "calendarEvents": [
+      {
+        "id": "flight_001",
+        "participantId": "jane_partner",
+        "title": "Flight to New York",
+        "startsAt": "2026-09-17T12:00:00-04:00",
+        "endsAt": "2026-09-17T14:00:00-04:00",
+        "kind": "travel",
+        "movable": false
+      },
+      {
+        "id": "candidate_hold_001",
+        "participantId": "maya_candidate",
+        "title": "Existing appointment",
+        "startsAt": "2026-09-17T14:45:00-04:00",
+        "endsAt": "2026-09-17T15:30:00-04:00",
+        "kind": "personal",
+        "movable": false
+      },
+      {
+        "id": "internal_sync_001",
+        "participantId": "jane_partner",
+        "title": "Internal search sync",
+        "startsAt": "2026-09-17T15:30:00-04:00",
+        "endsAt": "2026-09-17T16:00:00-04:00",
+        "kind": "internal",
+        "movable": true
+      },
+      {
+        "id": "client_call_001",
+        "participantId": "jane_partner",
+        "title": "Client update",
+        "startsAt": "2026-09-17T16:15:00-04:00",
+        "endsAt": "2026-09-17T17:00:00-04:00",
+        "kind": "client",
+        "movable": false
+      }
+    ],
+    "meetingRequest": {
+      "id": "candidate_interview_001",
+      "title": "Maya Chen candidate interview",
+      "participantIds": ["maya_candidate", "jane_partner"],
+      "durationMinutes": 30,
+      "windowStartsAt": "2026-09-17T14:15:00-04:00",
+      "windowEndsAt": "2026-09-17T17:00:00-04:00",
+      "meetingType": "candidate_interview"
+    },
+    "preferences": [
+      {
+        "id": "jane_travel_buffer",
+        "type": "travel_buffer",
+        "description": "Give Jane 45 minutes after travel before a meeting.",
+        "participantId": "jane_partner",
+        "afterEventKind": "travel",
+        "minutes": 45
+      },
+      {
+        "id": "candidate_priority",
+        "type": "event_priority",
+        "description": "Candidate interviews may displace internal meetings.",
+        "preferredMeetingType": "candidate_interview",
+        "displaceableEventKind": "internal"
+      },
+      {
+        "id": "protect_client_calls",
+        "type": "protected_event",
+        "description": "Client calls must never be moved.",
+        "eventKind": "client"
+      }
+    ]
+  },
+  "expected": {
+    "action": "ACT",
+    "selectedStartsAt": "2026-09-17T15:30:00-04:00",
+    "requiredReasonCodes": ["movable_event", "preference_match"],
+    "forbiddenActions": ["STOP"]
+  }
+}
