@@ -7,6 +7,7 @@ export {
   decisionActionSchema,
   eventKindSchema,
   expectedOutcomeSchema,
+  instantSchema,
   meetingRequestSchema,
   meetingTypeSchema,
   participantRoleSchema,
@@ -15,6 +16,7 @@ export {
   scenarioFixtureSchema,
   scenarioInputSchema,
   schedulingDecisionSchema,
+  timeZoneSchema,
 } from './schema';
 
 export type {
@@ -32,3 +34,9 @@ export type {
 } from './schema';
 
 export { loadScenarioFixture, ScenarioFixtureError } from './scenario-loader';
+export {
+  differenceInMinutes,
+  formatInstantInTimeZone,
+  getLocalDateTimeParts,
+  normalizeInstant,
+} from './time';

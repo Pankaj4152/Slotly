@@ -6,9 +6,11 @@ const identifier = z
   .min(1)
   .regex(/^[a-z0-9]+(?:_[a-z0-9]+)*$/, 'Use a lowercase snake_case identifier');
 
-const isoDateTime = z.iso.datetime({ offset: true });
+export const instantSchema = z.iso
+  .datetime({ offset: true })
+  .transform((value) => new Date(value).toISOString());
 
-const timeZone = z
+export const timeZoneSchema = z
   .string()
   .trim()
   .min(1)
@@ -37,14 +39,14 @@ export const participantSchema = z.object({
   id: identifier,
   name: z.string().trim().min(1),
   role: participantRoleSchema,
-  timezone: timeZone,
+  timezone: timeZoneSchema,
   required: z.boolean().default(true),
 });
 
 export const conversationMessageSchema = z.object({
   id: identifier,
   participantId: identifier,
-  sentAt: isoDateTime,
+  sentAt: instantSchema,
   body: z.string().trim().min(1),
 });
 
@@ -61,8 +63,8 @@ export const calendarEventSchema = z
     id: identifier,
     participantId: identifier,
     title: z.string().trim().min(1),
-    startsAt: isoDateTime,
-    endsAt: isoDateTime,
+    startsAt: instantSchema,
+    endsAt: instantSchema,
     kind: eventKindSchema,
     movable: z.boolean().default(false),
   })
@@ -84,8 +86,8 @@ export const meetingRequestSchema = z
     title: z.string().trim().min(1),
     participantIds: z.array(identifier).min(2),
     durationMinutes: z.number().int().positive().max(480),
-    windowStartsAt: isoDateTime,
-    windowEndsAt: isoDateTime,
+    windowStartsAt: instantSchema,
+    windowEndsAt: instantSchema,
     meetingType: meetingTypeSchema,
   })
   .refine(
@@ -156,8 +158,8 @@ export const candidateReasonSchema = z.object({
 
 export const candidateSlotSchema = z
   .object({
-    startsAt: isoDateTime,
-    endsAt: isoDateTime,
+    startsAt: instantSchema,
+    endsAt: instantSchema,
     status: candidateStatusSchema,
     score: z.number(),
     reasons: z.array(candidateReasonSchema),
@@ -221,7 +223,7 @@ export const schedulingDecisionSchema = z
 export const expectedOutcomeSchema = z
   .object({
     action: decisionActionSchema,
-    selectedStartsAt: isoDateTime.optional(),
+    selectedStartsAt: instantSchema.optional(),
     clarificationTopic: identifier.optional(),
     requiredReasonCodes: z.array(candidateReasonSchema.shape.code).default([]),
     forbiddenActions: z.array(decisionActionSchema).default([]),
@@ -254,7 +256,7 @@ const scenarioInputBaseSchema = z.object({
   id: identifier,
   title: z.string().trim().min(1),
   description: z.string().trim().min(1),
-  displayTimezone: timeZone,
+  displayTimezone: timeZoneSchema,
   participants: z.array(participantSchema).min(2),
   conversation: z.array(conversationMessageSchema).min(1),
   calendarEvents: z.array(calendarEventSchema),

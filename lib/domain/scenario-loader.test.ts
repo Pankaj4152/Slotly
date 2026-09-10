@@ -15,8 +15,12 @@ describe('loadScenarioFixture', () => {
     expect(fixture.input.calendarEvents).toHaveLength(4);
     expect(fixture.expected).toMatchObject({
       action: 'ACT',
-      selectedStartsAt: '2026-09-17T15:30:00-04:00',
+      selectedStartsAt: '2026-09-17T19:30:00.000Z',
     });
+    expect(fixture.input.calendarEvents[0].startsAt).toBe(
+      '2026-09-17T16:00:00.000Z',
+    );
+    expect(fixture.input.displayTimezone).toBe('America/New_York');
     expect(fixture.input).not.toHaveProperty('expected');
   });
 
