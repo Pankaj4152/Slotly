@@ -15,12 +15,17 @@ evidence—not private model reasoning.
    active policies.
 2. Select **Run Shadow** to evaluate the flight-buffer scenario.
 3. Inspect why early slots are rejected and why the internal sync may move.
-4. Open **Evaluation suite** to inspect all eight ACT, ASK, and STOP cases.
+4. Add custom conversation context and run again to refine the meeting request.
+5. Open **Evaluation suite** to inspect all eight ACT, ASK, and STOP cases.
 
 The app works without an API key using its deterministic fallback. When a
 Gemini key is configured, language extraction and candidate selection use the
 model behind a validated provider boundary; calendar arithmetic and final
 safety checks remain deterministic.
+
+Custom natural-language context changes scheduling only when Gemini is
+configured. In offline mode, Shadow returns `ASK` instead of silently ignoring
+the added message or guessing its meaning.
 
 ## Architecture
 
