@@ -18,7 +18,10 @@ describe('POST /api/run', () => {
     });
 
     const response = await POST(request);
-    const result = await response.json();
+    const result = (await response.json()) as {
+      decision: { action: string };
+      validation: { status: string };
+    };
 
     expect(response.status).toBe(200);
     expect(result.decision.action).toBe('ASK');
