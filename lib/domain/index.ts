@@ -15,6 +15,7 @@ export {
   preferenceSchema,
   scenarioFixtureSchema,
   scenarioInputSchema,
+  scoreComponentSchema,
   schedulingDecisionSchema,
   timeZoneSchema,
 } from './schema';
@@ -31,6 +32,7 @@ export type {
   Preference,
   ScenarioFixture,
   ScenarioInput,
+  ScoreComponent,
   SchedulingDecision,
 } from './schema';
 

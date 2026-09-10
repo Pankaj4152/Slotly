@@ -159,12 +159,24 @@ export const candidateReasonSchema = z.object({
   eventId: identifier.optional(),
 });
 
+export const scoreComponentSchema = z.object({
+  code: z.enum([
+    'base_availability',
+    'movable_event',
+    'preference_match',
+    'optional_attendee_conflict',
+  ]),
+  impact: z.number(),
+  message: z.string().trim().min(1),
+});
+
 export const candidateSlotSchema = z
   .object({
     startsAt: instantSchema,
     endsAt: instantSchema,
     status: candidateStatusSchema,
     score: z.number(),
+    scoreBreakdown: z.array(scoreComponentSchema).default([]),
     reasons: z.array(candidateReasonSchema),
   })
   .refine((slot) => Date.parse(slot.endsAt) > Date.parse(slot.startsAt), {
@@ -381,6 +393,7 @@ export type MeetingRequest = z.infer<typeof meetingRequestSchema>;
 export type Preference = z.infer<typeof preferenceSchema>;
 export type CandidateSlot = z.infer<typeof candidateSlotSchema>;
 export type CandidateReason = z.infer<typeof candidateReasonSchema>;
+export type ScoreComponent = z.infer<typeof scoreComponentSchema>;
 export type SchedulingDecision = z.infer<typeof schedulingDecisionSchema>;
 export type ExpectedOutcome = z.infer<typeof expectedOutcomeSchema>;
 export type ScenarioInput = z.infer<typeof scenarioInputSchema>;

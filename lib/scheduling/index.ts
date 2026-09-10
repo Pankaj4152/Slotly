@@ -7,3 +7,4 @@ export {
   evaluateCandidate,
   evaluateScenarioCandidates,
 } from './constraints';
+export { rankCandidateSlots, scoreCandidateSlot } from './ranking';
