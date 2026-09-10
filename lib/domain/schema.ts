@@ -153,6 +153,8 @@ export const candidateReasonSchema = z.object({
     'optional_attendee_conflict',
     'preference_match',
     'protected_event',
+    'safe_candidate',
+    'no_valid_slot',
   ]),
   message: z.string().trim().min(1),
   participantId: identifier.optional(),
@@ -195,6 +197,7 @@ export const schedulingDecisionSchema = z
     action: decisionActionSchema,
     selectedSlot: candidateSlotSchema.optional(),
     clarificationQuestion: z.string().trim().min(1).optional(),
+    clarificationTopic: identifier.optional(),
     reason: z.string().trim().min(1),
     evidence: z.array(candidateReasonSchema).min(1),
   })
@@ -223,6 +226,14 @@ export const schedulingDecisionSchema = z
         code: 'custom',
         message: 'ASK requires a clarification question',
         path: ['clarificationQuestion'],
+      });
+    }
+
+    if (decision.action === 'ASK' && !decision.clarificationTopic) {
+      context.addIssue({
+        code: 'custom',
+        message: 'ASK requires a clarification topic',
+        path: ['clarificationTopic'],
       });
     }
 

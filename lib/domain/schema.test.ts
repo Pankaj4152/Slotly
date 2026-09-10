@@ -116,6 +116,7 @@ describe('schedulingDecisionSchema', () => {
       label: 'ASK without a clarification question',
       decision: {
         action: 'ASK',
+        clarificationTopic: 'move_permission',
         reason: 'Permission is missing.',
         evidence: availableSlot.reasons,
       },

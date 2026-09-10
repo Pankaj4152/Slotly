@@ -8,3 +8,5 @@ export {
   evaluateScenarioCandidates,
 } from './constraints';
 export { rankCandidateSlots, scoreCandidateSlot } from './ranking';
+export { decideFromCandidates, runSchedulingDecision } from './decision';
+export type { SchedulingRun } from './decision';
