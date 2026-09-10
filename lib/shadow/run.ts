@@ -6,7 +6,11 @@ import {
   type ExtractedMeetingIntent,
   type ModelProvider,
 } from '../ai';
-import type { ScenarioInput, SchedulingDecision } from '../domain';
+import {
+  schedulingDecisionSchema,
+  type ScenarioInput,
+  type SchedulingDecision,
+} from '../domain';
 import {
   runSchedulingDecision,
   validateSchedulingDecision,
@@ -31,7 +35,12 @@ export async function runShadowScenario(
 
   try {
     const intent = await extractMeetingIntent(provider, scenario);
-    const effectiveScenario = applyExtractedIntent(scenario, intent);
+    let effectiveScenario: ScenarioInput;
+    try {
+      effectiveScenario = applyExtractedIntent(scenario, intent);
+    } catch (error) {
+      return clarificationRun(scenario, intent, error);
+    }
     const assisted = await runModelAssistedScheduling(
       provider,
       effectiveScenario,
@@ -55,6 +64,35 @@ export async function runShadowScenario(
       'Intent extraction failed; deterministic safety path used.',
     );
   }
+}
+
+function clarificationRun(
+  scenario: ScenarioInput,
+  intent: ExtractedMeetingIntent,
+  error: unknown,
+): ShadowRun {
+  const message =
+    error instanceof Error
+      ? error.message
+      : 'Conversation intent requires clarification.';
+  const run = runSchedulingDecision(scenario);
+  const decision = schedulingDecisionSchema.parse({
+    action: 'ASK',
+    clarificationTopic: intent.ambiguities[0] ?? 'date_window',
+    clarificationQuestion:
+      'Can you clarify the requested time within the verified calendar window?',
+    reason: message,
+    evidence: [{ code: 'no_valid_slot', message }],
+  });
+  return {
+    intent,
+    candidates: run.candidates,
+    decision,
+    validation: validateSchedulingDecision(decision, scenario),
+    mode: 'deterministic_fallback',
+    notice:
+      'Shadow paused because the conversation could not be applied safely.',
+  };
 }
 
 function deterministicRun(scenario: ScenarioInput, notice: string): ShadowRun {

@@ -45,6 +45,13 @@ export class IntentExtractionError extends ModelProviderError {
   }
 }
 
+export class IntentApplicationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'IntentApplicationError';
+  }
+}
+
 export async function extractMeetingIntent(
   provider: ModelProvider,
   scenario: ScenarioInput,
@@ -123,6 +130,27 @@ export function applyExtractedIntent(
 ): ScenarioInput {
   const validatedScenario = scenarioInputSchema.parse(scenario);
   const validatedIntent = extractedMeetingIntentSchema.parse(intent);
+
+  if (
+    validatedIntent.confidence === 'low' ||
+    validatedIntent.ambiguities.length > 0
+  ) {
+    throw new IntentApplicationError(
+      `Conversation intent requires clarification: ${validatedIntent.ambiguities.join(', ') || 'low confidence'}.`,
+    );
+  }
+
+  const requestedStart = Date.parse(validatedIntent.windowStartsAt);
+  const requestedEnd = Date.parse(validatedIntent.windowEndsAt);
+  const coverageStart = Date.parse(
+    validatedScenario.meetingRequest.windowStartsAt,
+  );
+  const coverageEnd = Date.parse(validatedScenario.meetingRequest.windowEndsAt);
+  if (requestedStart < coverageStart || requestedEnd > coverageEnd) {
+    throw new IntentApplicationError(
+      'Conversation requests a time outside the verified calendar window.',
+    );
+  }
 
   return scenarioInputSchema.parse({
     ...validatedScenario,

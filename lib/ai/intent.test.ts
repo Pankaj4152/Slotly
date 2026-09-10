@@ -139,4 +139,23 @@ describe('applyExtractedIntent', () => {
       }),
     ).toThrow();
   });
+
+  it('rejects ambiguous intent before it changes scheduling', () => {
+    expect(() =>
+      applyExtractedIntent(fixture.input, {
+        ...validIntent,
+        ambiguities: ['timezone'],
+        confidence: 'medium',
+      }),
+    ).toThrow('requires clarification');
+  });
+
+  it('does not widen scheduling beyond verified calendar coverage', () => {
+    expect(() =>
+      applyExtractedIntent(fixture.input, {
+        ...validIntent,
+        windowStartsAt: '2026-09-17T13:00:00-04:00',
+      }),
+    ).toThrow('outside the verified calendar window');
+  });
 });

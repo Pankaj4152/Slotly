@@ -19,6 +19,7 @@ export {
   createDeterministicIntent,
   extractMeetingIntent,
   extractedMeetingIntentSchema,
+  IntentApplicationError,
   IntentExtractionError,
   serializeIntentContext,
 } from './intent';

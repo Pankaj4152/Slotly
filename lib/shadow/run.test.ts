@@ -91,4 +91,28 @@ describe('runShadowScenario', () => {
     expect(result.notice).toContain('Intent extraction failed');
     expect(result.decision.action).toBe('ACT');
   });
+
+  it('asks instead of scheduling ambiguous conversation intent', async () => {
+    const provider = new FakeModelProvider({
+      replies: [
+        {
+          text: JSON.stringify({
+            ...intent,
+            ambiguities: ['timezone'],
+            confidence: 'medium',
+          }),
+          model: 'fake',
+        },
+      ],
+    });
+
+    const result = await runShadowScenario(scenario, provider);
+
+    expect(provider.requests).toHaveLength(1);
+    expect(result.decision).toMatchObject({
+      action: 'ASK',
+      clarificationTopic: 'timezone',
+    });
+    expect(result.notice).toContain('could not be applied safely');
+  });
 });
