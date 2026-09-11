@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Shadow — Scheduling reliability lab',
+  title: 'Slotly — Scheduling reliability lab',
   description:
     'Pre-deployment evaluation for context-aware autonomous scheduling agents.',
 };

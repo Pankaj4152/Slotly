@@ -1,4 +1,4 @@
-# Shadow — Pre-Deployment Reliability Lab for Vela
+# Slotly — Pre-Deployment Reliability Lab for Vela
 
 > **Proof-of-work project built for Vela's Founding Engineer role.**  
 > Investigates a core challenge in autonomous scheduling: _How can an AI agent make context-aware scheduling decisions, know when to abstain, and guarantee calendar safety before touching a real executive calendar?_
@@ -7,7 +7,7 @@
 
 ---
 
-## The Problem (Why Shadow Exists)
+## The Problem (Why Slotly Exists)
 
 In autonomous scheduling, errors are catastrophic:
 
@@ -15,7 +15,7 @@ In autonomous scheduling, errors are catastrophic:
 - Rescheduling a protected VIP client meeting without explicit permission is unacceptable.
 - Unconstrained LLMs struggle with timezone boundaries, exact minute arithmetic, and hallucinated availability.
 
-**Shadow** solves this by enforcing a strict boundary between probabilistic natural language understanding and deterministic calendar safety.
+**Slotly** solves this by enforcing a strict boundary between probabilistic natural language understanding and deterministic calendar safety.
 
 ---
 
@@ -75,7 +75,7 @@ Natural Conversation + Calendar State
    - The 3:30 PM internal sync is identified as `Movable` based on recruiter priority policy, leading to a safe `ACT` recommendation.
 2. **Interactive Calendar Editing**:
    - Click any event in the **Timeline View** or calendar list to change start/end times or switch category.
-   - Click the `Movable` badge on the 3:30 PM sync to make it `Fixed` → Observe Shadow immediately switch from `ACT` to `STOP`.
+   - Click the `Movable` badge on the 3:30 PM sync to make it `Fixed` → Observe Slotly immediately switch from `ACT` to `STOP`.
 3. **Adversarial Evaluation Suite (`/evals`)**:
    - Run the full suite across 8 adversarial scenarios covering DST boundaries, timezone confusion, protected client calls, and buffer regressions.
 
@@ -117,4 +117,4 @@ npm run build            # Next.js / Vinext production build
 
 ## Scope & Intentional Boundaries
 
-Shadow is built as a focused proof-of-work artifact demonstrating scheduling reliability algorithms, deterministic guardrails, and evaluation harnesses. It intentionally simulates synthetic calendar/chat data and omits authentication, databases, and real Google/Outlook calendar write integrations.
+Slotly is built as a focused proof-of-work artifact demonstrating scheduling reliability algorithms, deterministic guardrails, and evaluation harnesses. It intentionally simulates synthetic calendar/chat data and omits authentication, databases, and real Google/Outlook calendar write integrations.

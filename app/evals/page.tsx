@@ -21,7 +21,7 @@ export default function EvaluationsPage() {
               <FlaskConical aria-hidden="true" className="size-4" />
             </span>
             <div>
-              <p className="font-semibold tracking-[-0.025em]">Shadow</p>
+              <p className="font-semibold tracking-[-0.025em]">Slotly</p>
               <p className="text-xs text-muted-foreground">Evaluation suite</p>
             </div>
           </div>

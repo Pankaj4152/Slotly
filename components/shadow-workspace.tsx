@@ -72,7 +72,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
         : undefined,
     [baseScenario, customMessages, customEvents],
   );
-  if (!scenario) throw new Error('Shadow requires at least one scenario.');
+  if (!scenario) throw new Error('Slotly requires at least one scenario.');
   const scenarioId = scenario.id;
 
   const hasCustomMessages = (customMessages[scenarioId]?.length ?? 0) > 0;
@@ -93,7 +93,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
       setRun((await response.json()) as ShadowRun);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : 'Unable to run Shadow.',
+        caught instanceof Error ? caught.message : 'Unable to run Slotly.',
       );
     } finally {
       setRunning(false);
@@ -233,7 +233,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-semibold tracking-[-0.025em]">Shadow</p>
+                <p className="font-semibold tracking-[-0.025em]">Slotly</p>
                 <span className="rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                   Vela Reliability Lab
                 </span>
@@ -323,7 +323,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               {scenario.title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tweak calendars, inject dialogue, and test how Shadow makes safe,
+              Tweak calendars, inject dialogue, and test how Slotly makes safe,
               context-aware decisions.
             </p>
           </div>
@@ -749,7 +749,7 @@ function ReadyState() {
       <span className="grid size-14 place-items-center rounded-2xl bg-secondary">
         <ShieldCheck className="size-6 text-accent-foreground" />
       </span>
-      <h3 className="mt-5 text-lg font-semibold">Should Shadow schedule it?</h3>
+      <h3 className="mt-5 text-lg font-semibold">Should Slotly schedule it?</h3>
       <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
         Evaluate the request to get one clear, safety-checked outcome.
       </p>
