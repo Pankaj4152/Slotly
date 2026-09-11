@@ -404,14 +404,11 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </div>
 
             {/* Add Conversation Form */}
-            <details
-              className="group mt-4 overflow-hidden rounded-xl border border-border bg-secondary/45"
-              open
-            >
+            <details className="group mt-4 overflow-hidden rounded-xl border border-border bg-secondary/45">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-2.5 text-sm font-semibold">
                 Add to conversation
                 <span className="text-xs font-medium text-muted-foreground group-open:hidden">
-                  Expand
+                  Optional
                 </span>
                 <span className="hidden text-xs font-medium text-muted-foreground group-open:block">
                   Collapse
