@@ -5,7 +5,6 @@ import {
   ArrowRight,
   CalendarDays,
   Check,
-  ChevronRight,
   CircleDot,
   Clock3,
   FlaskConical,
@@ -124,7 +123,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             <div>
               <p className="font-semibold tracking-[-0.025em]">Shadow</p>
               <p className="text-xs text-muted-foreground">
-                Scheduling reliability lab
+                See why an AI scheduler acts—or stops
               </p>
             </div>
           </div>
@@ -153,7 +152,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               ) : (
                 <Sparkles aria-hidden="true" className="size-4" />
               )}
-              {running ? 'Evaluating…' : run ? 'Run again' : 'Run Shadow'}
+              {running ? 'Checking…' : run ? 'Run again' : 'Evaluate request'}
             </button>
           </div>
         </div>
@@ -175,7 +174,9 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </p>
           </div>
           <label className="min-w-[260px] sm:ml-auto">
-            <span className="sr-only">Choose a scheduling scenario</span>
+            <span className="mb-1 block text-xs font-semibold text-muted-foreground">
+              Try an example
+            </span>
             <select
               className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
               onChange={(event) => selectScenario(event.target.value)}
@@ -199,31 +200,8 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
           </div>
         </section>
 
-        <ol className="mb-5 grid overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3">
-          {[
-            ['1', 'Read the request', 'Conversation'],
-            ['2', 'Check constraints', 'Calendar + policies'],
-            ['3', 'Explain the outcome', 'Act, ask, or stop'],
-          ].map(([number, title, detail], index) => (
-            <li
-              className={`flex items-center gap-3 px-4 py-3 ${index > 0 ? 'border-t border-border sm:border-t-0 sm:border-l' : ''}`}
-              key={number}
-            >
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary font-mono text-xs font-bold text-primary-foreground">
-                {number}
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">{title}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {detail}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ol>
-
         <div className="grid gap-5 xl:grid-cols-[0.82fr_1.12fr_1.06fr]">
-          <Panel title="Conversation" eyebrow="Input">
+          <Panel title="Request" eyebrow="1 · Conversation">
             <div className="space-y-5">
               {scenario.conversation.map((message) => {
                 const person = scenario.participants.find(
@@ -334,22 +312,33 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </details>
           </Panel>
 
-          <Panel
-            title={formatDate(
-              scenario.meetingRequest.windowStartsAt,
-              scenario.displayTimezone,
-            )}
-            eyebrow="Calendar context"
-          >
+          <Panel title="Calendar and constraints" eyebrow="2 · Verify">
             <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">
+                  {formatDate(
+                    scenario.meetingRequest.windowStartsAt,
+                    scenario.displayTimezone,
+                  )}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Requested window ·{' '}
+                  {formatTime(
+                    scenario.meetingRequest.windowStartsAt,
+                    scenario.displayTimezone,
+                  )}
+                  –
+                  {formatTime(
+                    scenario.meetingRequest.windowEndsAt,
+                    scenario.displayTimezone,
+                  )}
+                </p>
+              </div>
               <div className="flex -space-x-2">
                 {scenario.participants.slice(0, 3).map((person) => (
                   <Avatar key={person.id} name={person.name} small />
                 ))}
               </div>
-              <span className="text-xs text-muted-foreground">
-                {scenario.displayTimezone}
-              </span>
             </div>
 
             <div className="relative overflow-hidden rounded-xl border border-border bg-background">
@@ -378,7 +367,11 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                     <span
                       className={`rounded-full px-2 py-1 text-[11px] font-semibold ${event.movable ? 'bg-amber-100 text-amber-800' : 'bg-secondary text-muted-foreground'}`}
                     >
-                      {event.movable ? 'Movable' : 'Protected'}
+                      {event.movable
+                        ? 'Movable'
+                        : isProtectedEvent(event.kind, scenario)
+                          ? 'Protected'
+                          : 'Fixed'}
                     </span>
                   </div>
                 </div>
@@ -412,6 +405,11 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                           ? 'Rejected'
                           : 'Eligible'}
                       </p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {candidate.reasons[0]
+                          ? humanize(candidate.reasons[0].code)
+                          : 'All checks passed'}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -419,7 +417,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             ) : null}
           </Panel>
 
-          <Panel title="Agent decision" eyebrow="Validated output">
+          <Panel title="Decision" eyebrow="3 · Result">
             {error ? <ErrorState message={error} onRetry={execute} /> : null}
             {!error && !run && !running ? <ReadyState /> : null}
             {!error && running ? <RunningState /> : null}
@@ -459,19 +457,28 @@ function Panel({
 
 function ReadyState() {
   return (
-    <div className="flex min-h-[430px] flex-col items-center justify-center text-center">
+    <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
       <span className="grid size-14 place-items-center rounded-2xl bg-secondary">
         <ShieldCheck className="size-6 text-accent-foreground" />
       </span>
-      <h3 className="mt-5 text-lg font-semibold">Ready to evaluate</h3>
+      <h3 className="mt-5 text-lg font-semibold">Should Shadow schedule it?</h3>
       <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
-        Run the scenario to generate candidates, apply policies, and validate
-        the final action.
+        Evaluate the request to get one clear, safety-checked outcome.
       </p>
-      <div className="mt-6 flex items-center gap-2 font-mono text-xs text-muted-foreground">
-        ACT <ChevronRight className="size-3" /> ASK{' '}
-        <ChevronRight className="size-3" /> STOP
-      </div>
+      <dl className="mt-6 grid w-full max-w-xs grid-cols-3 gap-2 text-left">
+        {[
+          ['ACT', 'Safe to schedule'],
+          ['ASK', 'Needs clarification'],
+          ['STOP', 'No safe option'],
+        ].map(([action, meaning]) => (
+          <div className="rounded-lg bg-secondary p-2.5" key={action}>
+            <dt className="font-mono text-xs font-bold">{action}</dt>
+            <dd className="mt-1 text-xs leading-4 text-muted-foreground">
+              {meaning}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -530,7 +537,7 @@ function DecisionState({
             {run.decision.action}
           </span>
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
-            <ShieldCheck className="size-3.5" /> {run.validation.status}
+            <ShieldCheck className="size-3.5" /> Safety checked
           </span>
         </div>
         {selected ? (
@@ -574,19 +581,27 @@ function DecisionState({
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between rounded-xl bg-secondary px-4 py-3 text-xs">
-        <span className="text-muted-foreground">Execution mode</span>
-        <span className="font-mono font-semibold">
-          {run.mode === 'model'
-            ? 'MODEL + GUARDRAILS'
-            : 'DETERMINISTIC FALLBACK'}
-        </span>
-      </div>
-      {run.notice ? (
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          {run.notice}
-        </p>
-      ) : null}
+      <details className="group mt-5 rounded-xl bg-secondary px-4 py-3 text-xs">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+          <span className="font-semibold">How this ran</span>
+          <span className="text-muted-foreground group-open:hidden">
+            Details
+          </span>
+          <span className="hidden text-muted-foreground group-open:block">
+            Close
+          </span>
+        </summary>
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="font-mono font-semibold">
+            {run.mode === 'model'
+              ? 'MODEL + DETERMINISTIC GUARDRAILS'
+              : 'DETERMINISTIC FALLBACK'}
+          </p>
+          {run.notice ? (
+            <p className="mt-2 leading-5 text-muted-foreground">{run.notice}</p>
+          ) : null}
+        </div>
+      </details>
     </div>
   );
 }
@@ -670,6 +685,16 @@ function humanize(value: string) {
   return value
     .replaceAll('_', ' ')
     .replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function isProtectedEvent(
+  kind: ScenarioInput['calendarEvents'][number]['kind'],
+  scenario: ScenarioInput,
+) {
+  return scenario.preferences.some(
+    (preference) =>
+      preference.type === 'protected_event' && preference.eventKind === kind,
+  );
 }
 
 function headlineCandidates(run: ShadowRun) {
