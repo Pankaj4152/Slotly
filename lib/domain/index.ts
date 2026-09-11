@@ -25,8 +25,10 @@ export type {
   CandidateReason,
   CandidateSlot,
   ConversationMessage,
+  EventKind,
   ExpectedOutcome,
   MeetingRequest,
+  MeetingType,
   Participant,
   ParticipantRole,
   Preference,
@@ -43,3 +45,4 @@ export {
   getLocalDateTimeParts,
   normalizeInstant,
 } from './time';
+export type { LocalDateTimeParts } from './time';

@@ -7,10 +7,13 @@ import {
   Check,
   CircleDot,
   Clock3,
+  Edit2,
   FlaskConical,
   LoaderCircle,
   MapPin,
   Plane,
+  Plus,
+  RotateCcw,
   Send,
   ShieldCheck,
   Sparkles,
@@ -20,10 +23,32 @@ import {
 import { useMemo, useState, type SyntheticEvent } from 'react';
 import Link from 'next/link';
 
-import type { ConversationMessage, ScenarioInput } from '../lib/domain';
+import type {
+  CalendarEvent,
+  ConversationMessage,
+  ScenarioInput,
+} from '../lib/domain';
 import type { ShadowRun } from '../lib/shadow';
+import { CalendarEventDialog } from './calendar-event-dialog';
+import { CalendarTimeline } from './calendar-timeline';
 
 type ShadowWorkspaceProps = { scenarios: readonly ScenarioInput[] };
+
+const QUICK_PROMPTS = [
+  { label: 'Available after 4 PM', text: 'I can only make it after 4:00 PM.' },
+  {
+    label: 'Allow moving internal sync',
+    text: 'Feel free to move my 3:30 PM internal sync if needed.',
+  },
+  {
+    label: 'Protect external client',
+    text: 'My client meeting is strictly protected and cannot move.',
+  },
+  {
+    label: 'Request 45 min duration',
+    text: 'Could we do 45 minutes instead of 30?',
+  },
+];
 
 export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(
@@ -39,6 +64,13 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
   const [customMessages, setCustomMessages] = useState<
     Record<string, ConversationMessage[]>
   >({});
+  const [customEvents, setCustomEvents] = useState<
+    Record<string, CalendarEvent[]>
+  >({});
+
+  // Dialog state for add/edit calendar event
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
   const baseScenario = scenarios.find(({ id }) => id === selectedScenarioId);
   const scenario = useMemo(
@@ -50,12 +82,18 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               ...baseScenario.conversation,
               ...(customMessages[baseScenario.id] ?? []),
             ],
+            calendarEvents:
+              customEvents[baseScenario.id] ?? baseScenario.calendarEvents,
           }
         : undefined,
-    [baseScenario, customMessages],
+    [baseScenario, customMessages, customEvents],
   );
   if (!scenario) throw new Error('Shadow requires at least one scenario.');
   const scenarioId = scenario.id;
+
+  const hasCustomMessages = (customMessages[scenarioId]?.length ?? 0) > 0;
+  const hasCustomEvents = Boolean(customEvents[scenarioId]);
+  const hasModifications = hasCustomMessages || hasCustomEvents;
 
   async function execute() {
     setRunning(true);
@@ -80,21 +118,23 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
 
   function selectScenario(id: string) {
     setSelectedScenarioId(id);
-    const nextScenario = scenarios.find((scenario) => scenario.id === id);
+    const nextScenario = scenarios.find((s) => s.id === id);
     setSpeakerId(nextScenario?.participants[0]?.id ?? '');
     setDraft('');
     setRun(undefined);
     setError(undefined);
   }
 
-  function addCustomMessage(event: SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const body = draft.trim();
-    if (!body || !speakerId) return;
+  function addMessageWithText(bodyText: string, participantId?: string) {
+    if (!baseScenario) return;
+    const body = bodyText.trim();
+    const speaker = participantId || speakerId;
+    if (!body || !speaker) return;
+    const messageIndex = (customMessages[scenarioId]?.length ?? 0) + 1;
     const message: ConversationMessage = {
-      id: `custom_message_${Date.now()}`,
-      participantId: speakerId,
-      sentAt: new Date().toISOString(),
+      id: `custom_msg_${scenarioId}_${messageIndex}`,
+      participantId: speaker,
+      sentAt: baseScenario.meetingRequest.windowStartsAt,
       body,
     };
     setCustomMessages((current) => ({
@@ -106,14 +146,101 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
     setError(undefined);
   }
 
+  function addCustomMessage(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    addMessageWithText(draft);
+  }
+
+  function removeCustomMessage(messageId: string) {
+    setCustomMessages((current) => ({
+      ...current,
+      [scenarioId]: (current[scenarioId] ?? []).filter(
+        (m) => m.id !== messageId,
+      ),
+    }));
+    setRun(undefined);
+    setError(undefined);
+  }
+
   function clearCustomMessages() {
     setCustomMessages((current) => ({ ...current, [scenarioId]: [] }));
     setRun(undefined);
     setError(undefined);
   }
 
+  function handleSaveEvent(event: CalendarEvent) {
+    const currentEvents = customEvents[scenarioId] ?? [
+      ...(baseScenario?.calendarEvents ?? []),
+    ];
+    const exists = currentEvents.some((e) => e.id === event.id);
+
+    const updated = exists
+      ? currentEvents.map((e) => (e.id === event.id ? event : e))
+      : [...currentEvents, event];
+
+    setCustomEvents((curr) => ({
+      ...curr,
+      [scenarioId]: updated,
+    }));
+    setRun(undefined);
+    setError(undefined);
+  }
+
+  function handleDeleteEvent(eventId: string) {
+    const currentEvents = customEvents[scenarioId] ?? [
+      ...(baseScenario?.calendarEvents ?? []),
+    ];
+    setCustomEvents((curr) => ({
+      ...curr,
+      [scenarioId]: currentEvents.filter((e) => e.id !== eventId),
+    }));
+    setRun(undefined);
+    setError(undefined);
+  }
+
+  function handleToggleMovable(eventId: string) {
+    const currentEvents = customEvents[scenarioId] ?? [
+      ...(baseScenario?.calendarEvents ?? []),
+    ];
+    const updated = currentEvents.map((e) =>
+      e.id === eventId ? { ...e, movable: !e.movable } : e,
+    );
+    setCustomEvents((curr) => ({
+      ...curr,
+      [scenarioId]: updated,
+    }));
+    setRun(undefined);
+    setError(undefined);
+  }
+
+  function handleResetScenario() {
+    setCustomMessages((curr) => {
+      const next = { ...curr };
+      delete next[scenarioId];
+      return next;
+    });
+    setCustomEvents((curr) => {
+      const next = { ...curr };
+      delete next[scenarioId];
+      return next;
+    });
+    setDraft('');
+    setRun(undefined);
+    setError(undefined);
+  }
+
+  function openAddEventDialog() {
+    setEditingEvent(null);
+    setIsEventDialogOpen(true);
+  }
+
+  function openEditEventDialog(event: CalendarEvent) {
+    setEditingEvent(event);
+    setIsEventDialogOpen(true);
+  }
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen bg-background text-foreground pb-12">
       <header className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -159,65 +286,131 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
       </header>
 
       <div className="mx-auto max-w-[1480px] px-4 py-5 sm:px-6">
+        {/* Scenario Carousel / Switcher Bar */}
+        <section className="mb-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {scenarios.map((option, index) => {
+              const isSelected = option.id === scenario.id;
+              return (
+                <button
+                  className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                  key={option.id}
+                  onClick={() => selectScenario(option.id)}
+                  type="button"
+                >
+                  <span
+                    className={`grid size-4 place-items-center rounded-full text-[10px] ${
+                      isSelected
+                        ? 'bg-primary-foreground/20 text-primary-foreground'
+                        : 'bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="max-w-[200px] truncate">{option.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Scenario Header Info Banner */}
         <section className="mb-5 flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm sm:flex-row sm:items-center">
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent-foreground">
               <CircleDot aria-hidden="true" className="size-3.5" />
               Interactive scenario
+              {hasModifications ? (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                  <Sparkles className="size-3" /> Modified
+                </span>
+              ) : null}
             </div>
             <h1 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
               {scenario.title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose an example, review what Shadow knows, then run the safety
-              check.
+              Tweak calendars, inject dialogue, and test how Shadow makes safe,
+              context-aware decisions.
             </p>
           </div>
-          <label className="min-w-[260px] sm:ml-auto">
-            <span className="mb-1 block text-xs font-semibold text-muted-foreground">
-              Try an example
-            </span>
-            <select
-              className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
-              onChange={(event) => selectScenario(event.target.value)}
-              value={scenario.id}
-            >
-              {scenarios.map((option, index) => (
-                <option key={option.id} value={option.id}>
-                  {index + 1}. {option.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:ml-auto">
+            {hasModifications ? (
+              <button
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 font-semibold text-amber-900 transition hover:bg-amber-100"
+                onClick={handleResetScenario}
+                title="Restore scenario to preset defaults"
+                type="button"
+              >
+                <RotateCcw className="size-3.5" /> Reset modifications
+              </button>
+            ) : null}
             <Pill icon={Clock3}>
               {scenario.meetingRequest.durationMinutes} minutes
             </Pill>
             <Pill icon={MapPin}>{scenario.displayTimezone}</Pill>
             <Pill icon={UserRound}>
-              {scenario.meetingRequest.participantIds.length} participants
+              {scenario.participants.length} participants
             </Pill>
           </div>
         </section>
 
+        {/* 3-Column Pipeline Workspace */}
         <div className="grid gap-5 xl:grid-cols-[0.82fr_1.12fr_1.06fr]">
-          <Panel title="Request" eyebrow="1 · Conversation">
-            <div className="space-y-5">
+          {/* Panel 1: Conversation & Intent */}
+          <Panel eyebrow="1 · Conversation" title="Request & Dialogue">
+            <div className="space-y-4">
               {scenario.conversation.map((message) => {
                 const person = scenario.participants.find(
                   ({ id }) => id === message.participantId,
                 );
+                const isCustom = message.id.startsWith('custom_msg_');
                 return (
                   <article className="flex gap-3" key={message.id}>
                     <Avatar name={person?.name ?? '?'} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
-                        <p className="text-sm font-semibold">{person?.name}</p>
-                        <time className="shrink-0 text-xs text-muted-foreground">
-                          {formatTime(message.sentAt, scenario.displayTimezone)}
-                        </time>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold">
+                            {person?.name}
+                          </p>
+                          {isCustom && (
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                              Added
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <time className="shrink-0 text-xs text-muted-foreground">
+                            {formatTime(
+                              message.sentAt,
+                              scenario.displayTimezone,
+                            )}
+                          </time>
+                          {isCustom && (
+                            <button
+                              aria-label="Delete added message"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => removeCustomMessage(message.id)}
+                              type="button"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <p className="mt-1.5 rounded-r-xl rounded-bl-xl bg-secondary px-3.5 py-3 text-sm leading-6 text-secondary-foreground">
+                      <p
+                        className={`mt-1.5 rounded-r-xl rounded-bl-xl px-3.5 py-3 text-sm leading-6 ${
+                          isCustom
+                            ? 'border border-primary/20 bg-primary/5 text-foreground'
+                            : 'bg-secondary text-secondary-foreground'
+                        }`}
+                      >
                         {message.body}
                       </p>
                     </div>
@@ -226,29 +419,58 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               })}
             </div>
 
-            <details className="group mt-6 overflow-hidden rounded-xl border border-border bg-secondary/45">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-sm font-semibold">
-                Add or clarify the conversation
+            {/* Quick Prompt Chips */}
+            <div className="mt-5 border-t border-border pt-4">
+              <span className="section-label block mb-2">
+                Quick test inputs
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_PROMPTS.map((qp) => (
+                  <button
+                    className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/50 hover:bg-secondary hover:text-foreground"
+                    key={qp.label}
+                    onClick={() => addMessageWithText(qp.text)}
+                    type="button"
+                  >
+                    + {qp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Conversation Form */}
+            <details
+              className="group mt-4 overflow-hidden rounded-xl border border-border bg-secondary/45"
+              open
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-2.5 text-sm font-semibold">
+                Add to conversation
                 <span className="text-xs font-medium text-muted-foreground group-open:hidden">
-                  Optional
+                  Expand
                 </span>
                 <span className="hidden text-xs font-medium text-muted-foreground group-open:block">
-                  Close
+                  Collapse
                 </span>
               </summary>
               <form
                 className="border-t border-border p-3.5"
                 onSubmit={addCustomMessage}
               >
-                <div className="mb-2 flex items-center justify-end gap-3">
-                  {(customMessages[scenario.id]?.length ?? 0) > 0 ? (
+                <div className="mb-2 flex items-center justify-between">
+                  <label
+                    className="text-xs font-semibold text-muted-foreground"
+                    htmlFor="custom-speaker"
+                  >
+                    Speak as:
+                  </label>
+                  {hasCustomMessages ? (
                     <button
                       className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-destructive"
                       onClick={clearCustomMessages}
                       type="button"
                     >
                       <Trash2 aria-hidden="true" className="size-3.5" />
-                      Clear added
+                      Clear all added
                     </button>
                   ) : null}
                 </div>
@@ -260,7 +482,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                 >
                   {scenario.participants.map((participant) => (
                     <option key={participant.id} value={participant.id}>
-                      {participant.name} · {humanize(participant.role)}
+                      {participant.name} ({humanize(participant.role)})
                     </option>
                   ))}
                 </select>
@@ -268,7 +490,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                   className="mt-2 min-h-20 w-full resize-y rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5 outline-none placeholder:text-muted-foreground focus:border-ring"
                   maxLength={500}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Add availability, a preference, or clarification…"
+                  placeholder="Type an availability constraint, preference change, or response…"
                   value={draft}
                 />
                 <div className="mt-2 flex items-center justify-between gap-3">
@@ -281,16 +503,17 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                     type="submit"
                   >
                     <Send aria-hidden="true" className="size-3.5" />
-                    Add to chat
+                    Send message
                   </button>
                 </div>
               </form>
             </details>
 
+            {/* Policies Checked */}
             <details className="group mt-5 border-t border-border pt-4">
               <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
-                Policies checked
-                <span className="rounded-full bg-secondary px-2 py-1 text-xs text-muted-foreground">
+                Active policies & rules
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                   {scenario.preferences.length}
                 </span>
               </summary>
@@ -312,7 +535,20 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </details>
           </Panel>
 
-          <Panel title="Calendar and constraints" eyebrow="2 · Verify">
+          {/* Panel 2: Calendar, Events & Timeline */}
+          <Panel
+            action={
+              <button
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold transition hover:border-primary hover:bg-secondary"
+                onClick={openAddEventDialog}
+                type="button"
+              >
+                <Plus className="size-3.5" /> Add event
+              </button>
+            }
+            eyebrow="2 · Verify"
+            title="Calendar & Timeline"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold">
@@ -322,7 +558,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                   )}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Requested window ·{' '}
+                  Target window ·{' '}
                   {formatTime(
                     scenario.meetingRequest.windowStartsAt,
                     scenario.displayTimezone,
@@ -341,55 +577,122 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-xl border border-border bg-background">
-              {scenario.calendarEvents.map((event) => (
-                <div
-                  className={`border-b border-border/70 px-4 py-3 last:border-b-0 ${event.kind === 'travel' ? 'bg-sky-50/70' : event.kind === 'client' ? 'bg-rose-50/60' : 'bg-card'}`}
-                  key={event.id}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-3">
-                      <span className="mt-0.5 grid size-8 place-items-center rounded-lg border border-border bg-card">
-                        {event.kind === 'travel' ? (
-                          <Plane className="size-4 text-sky-700" />
-                        ) : (
-                          <CalendarDays className="size-4 text-muted-foreground" />
-                        )}
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold">{event.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {formatTime(event.startsAt, scenario.displayTimezone)}
-                          –{formatTime(event.endsAt, scenario.displayTimezone)}
-                        </p>
+            {/* Visual Day Timeline */}
+            <CalendarTimeline
+              candidates={run?.candidates}
+              onEditEvent={openEditEventDialog}
+              scenario={scenario}
+              selectedSlot={run?.decision.selectedSlot}
+            />
+
+            {/* Calendar Events List */}
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="section-label">Calendar events</span>
+                <span className="text-xs text-muted-foreground">
+                  Click badge to toggle Movable
+                </span>
+              </div>
+              <div className="relative overflow-hidden rounded-xl border border-border bg-background">
+                {scenario.calendarEvents.map((event) => {
+                  const person = scenario.participants.find(
+                    (p) => p.id === event.participantId,
+                  );
+                  return (
+                    <div
+                      className={`border-b border-border/70 px-4 py-3 last:border-b-0 transition hover:bg-secondary/40 ${
+                        event.kind === 'travel'
+                          ? 'bg-sky-50/70'
+                          : event.kind === 'client'
+                            ? 'bg-rose-50/60'
+                            : 'bg-card'
+                      }`}
+                      key={event.id}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex gap-3">
+                          <span className="mt-0.5 grid size-8 place-items-center rounded-lg border border-border bg-card">
+                            {event.kind === 'travel' ? (
+                              <Plane className="size-4 text-sky-700" />
+                            ) : (
+                              <CalendarDays className="size-4 text-muted-foreground" />
+                            )}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold">
+                                {event.title}
+                              </p>
+                              {person && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({person.name.split(' ')[0]})
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {formatTime(
+                                event.startsAt,
+                                scenario.displayTimezone,
+                              )}
+                              –
+                              {formatTime(
+                                event.endsAt,
+                                scenario.displayTimezone,
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition cursor-pointer hover:opacity-85 ${
+                              event.movable
+                                ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                                : 'bg-secondary text-muted-foreground hover:text-foreground'
+                            }`}
+                            onClick={() => handleToggleMovable(event.id)}
+                            title="Click to toggle Movable / Fixed"
+                            type="button"
+                          >
+                            {event.movable
+                              ? 'Movable ✓'
+                              : isProtectedEvent(event.kind, scenario)
+                                ? 'Protected'
+                                : 'Fixed'}
+                          </button>
+                          <button
+                            aria-label="Edit event details"
+                            className="rounded-lg p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                            onClick={() => openEditEventDialog(event)}
+                            type="button"
+                          >
+                            <Edit2 className="size-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${event.movable ? 'bg-amber-100 text-amber-800' : 'bg-secondary text-muted-foreground'}`}
-                    >
-                      {event.movable
-                        ? 'Movable'
-                        : isProtectedEvent(event.kind, scenario)
-                          ? 'Protected'
-                          : 'Fixed'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {scenario.calendarEvents.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No calendar events in this scenario.
-                </p>
-              ) : null}
+                  );
+                })}
+                {scenario.calendarEvents.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    No calendar events in this scenario.
+                  </p>
+                ) : null}
+              </div>
             </div>
 
+            {/* Candidate Trace */}
             {run ? (
               <div className="mt-5">
-                <p className="section-label">Candidate trace</p>
+                <p className="section-label">Evaluated Candidates</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {headlineCandidates(run).map((candidate) => (
                     <div
-                      className={`rounded-xl border p-3 ${candidate.status === 'rejected' ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}
+                      className={`rounded-xl border p-3 ${
+                        candidate.status === 'rejected'
+                          ? 'border-rose-200 bg-rose-50'
+                          : 'border-emerald-200 bg-emerald-50'
+                      }`}
                       key={candidate.startsAt}
                     >
                       <p className="text-sm font-semibold">
@@ -399,7 +702,11 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                         )}
                       </p>
                       <p
-                        className={`mt-1 text-xs font-medium ${candidate.status === 'rejected' ? 'text-rose-700' : 'text-emerald-700'}`}
+                        className={`mt-1 text-xs font-medium ${
+                          candidate.status === 'rejected'
+                            ? 'text-rose-700'
+                            : 'text-emerald-700'
+                        }`}
                       >
                         {candidate.status === 'rejected'
                           ? 'Rejected'
@@ -417,7 +724,8 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             ) : null}
           </Panel>
 
-          <Panel title="Decision" eyebrow="3 · Result">
+          {/* Panel 3: Decision Result */}
+          <Panel eyebrow="3 · Result" title="Agent Decision">
             {error ? <ErrorState message={error} onRetry={execute} /> : null}
             {!error && !run && !running ? <ReadyState /> : null}
             {!error && running ? <RunningState /> : null}
@@ -427,6 +735,16 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
           </Panel>
         </div>
       </div>
+
+      {/* Calendar Event Modal Dialog */}
+      <CalendarEventDialog
+        initialEvent={editingEvent}
+        isOpen={isEventDialogOpen}
+        onClose={() => setIsEventDialogOpen(false)}
+        onDelete={handleDeleteEvent}
+        onSave={handleSaveEvent}
+        scenario={scenario}
+      />
     </main>
   );
 }
@@ -434,10 +752,12 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
 function Panel({
   title,
   eyebrow,
+  action,
   children,
 }: {
   title: string;
   eyebrow: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -449,6 +769,7 @@ function Panel({
             {title}
           </h2>
         </div>
+        {action && <div>{action}</div>}
       </div>
       {children}
     </section>
@@ -498,7 +819,11 @@ function RunningState() {
           key={stage}
         >
           <LoaderCircle
-            className={`size-4 ${index === 0 ? 'animate-spin text-accent-foreground' : 'text-muted-foreground/40'}`}
+            className={`size-4 ${
+              index === 0
+                ? 'animate-spin text-accent-foreground'
+                : 'text-muted-foreground/40'
+            }`}
           />
           <span className="text-sm font-medium">{stage}</span>
         </div>
@@ -657,7 +982,9 @@ function Avatar({ name, small = false }: { name: string; small?: boolean }) {
   return (
     <span
       aria-label={name}
-      className={`grid shrink-0 place-items-center rounded-full border-2 border-card bg-primary font-semibold text-primary-foreground ${small ? 'size-8 text-[10px]' : 'size-9 text-xs'}`}
+      className={`grid shrink-0 place-items-center rounded-full border-2 border-card bg-primary font-semibold text-primary-foreground ${
+        small ? 'size-8 text-[10px]' : 'size-9 text-xs'
+      }`}
     >
       {initials}
     </span>

@@ -397,6 +397,8 @@ function addMissingReferenceIssue(
   context.addIssue({ code: 'custom', message, path });
 }
 
+export type EventKind = z.infer<typeof eventKindSchema>;
+export type MeetingType = z.infer<typeof meetingTypeSchema>;
 export type ParticipantRole = z.infer<typeof participantRoleSchema>;
 export type Participant = z.infer<typeof participantSchema>;
 export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
