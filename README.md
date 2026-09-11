@@ -1,101 +1,120 @@
-# Shadow
+# Shadow — Pre-Deployment Reliability Lab for Vela
 
-Shadow is a pre-deployment reliability lab for autonomous scheduling agents. It
-tests whether an agent should act, ask for clarification, or stop before a
-decision reaches a real calendar.
+> **Proof-of-work project built for Vela's Founding Engineer role.**  
+> Investigates a core challenge in autonomous scheduling: _How can an AI agent make context-aware scheduling decisions, know when to abstain, and guarantee calendar safety before touching a real executive calendar?_
 
-The demo combines a realistic scheduling conversation with deterministic slot
-generation, hard constraints, explicit preference evidence, a final safety
-validator, and an adversarial evaluation suite. The interface shows decision
-evidence—not private model reasoning.
+[Open Live Demo](https://shadow-scheduling-lab.sparshgaur639.chatgpt.site) · [Evaluation Suite (`/evals`)](https://shadow-scheduling-lab.sparshgaur639.chatgpt.site/evals)
 
-## What to try
+---
 
-1. Open the scenario workspace and review the conversation, calendars, and
-   active policies.
-2. Select **Run Shadow** to evaluate the flight-buffer scenario.
-3. Inspect why early slots are rejected and why the internal sync may move.
-4. Add custom conversation context and run again to refine the meeting request.
-5. Open **Evaluation suite** to inspect all eight ACT, ASK, and STOP cases.
+## The Problem (Why Shadow Exists)
 
-The app works without an API key using its deterministic fallback. When a
-Gemini key is configured, language extraction and candidate selection use the
-model behind a validated provider boundary; calendar arithmetic and final
-safety checks remain deterministic.
+In autonomous scheduling, errors are catastrophic:
 
-Custom natural-language context changes scheduling only when Gemini is
-configured. In offline mode, Shadow returns `ASK` instead of silently ignoring
-the added message or guessing its meaning.
+- Double-booking an executive after travel destroys trust immediately.
+- Rescheduling a protected VIP client meeting without explicit permission is unacceptable.
+- Unconstrained LLMs struggle with timezone boundaries, exact minute arithmetic, and hallucinated availability.
 
-## Architecture
+**Shadow** solves this by enforcing a strict boundary between probabilistic natural language understanding and deterministic calendar safety.
+
+---
+
+## Decision Taxonomy
+
+Every incoming scheduling request resolves to one of three validated actions:
+
+| Action     | Meaning             | Safety Behavior                                                                                                  |
+| :--------- | :------------------ | :--------------------------------------------------------------------------------------------------------------- |
+| **`ACT`**  | Safe to place       | All hard constraints, travel buffers, and movable-meeting policies passed independent safety checks.             |
+| **`ASK`**  | Abstain & clarify   | Critical parameters are missing, ambiguous, or moving an internal meeting requires explicit stakeholder consent. |
+| **`STOP`** | Infeasible / Unsafe | No safe slot exists without violating hard constraints (e.g., flight buffer, immovable client call).             |
+
+---
+
+## Key Architecture & Design Philosophy
 
 ```text
-Conversation + calendar context
-            |
-            v
-Validated intent extraction
-            |
-            v
-Candidate generation and hard constraints
-            |
-            v
-Preference ranking and ACT / ASK / STOP
-            |
-            v
-Independent final validator
-            |
-            v
-Decision trace + evaluation contract
+Natural Conversation + Calendar State
+                 |
+                 v
+   [Structured Intent Extraction]       <-- LLM (Gemini) or Validated Fallback
+                 |
+                 v
+   [Deterministic Slot Generation]      <-- Exact minute interval generation
+                 |
+                 v
+   [Hard Constraint & Buffer Filter]    <-- Travel buffers, working hours, conflicts
+                 |
+                 v
+   [Preference & Policy Ranking]        <-- Scoring with typed evidence attachment
+                 |
+                 v
+   [ACT / ASK / STOP Decision]          <-- Contextual judgment with explicit rules
+                 |
+                 v
+   [Independent Final Validator]        <-- Re-checks selected slot before execution
+                 |
+                 v
+   [Decision Trace + Evaluation Result]
 ```
 
-Key boundaries:
+### Engineering Principles
 
-- `lib/domain` owns validated scheduling types and timezone normalization.
-- `lib/scheduling` owns deterministic candidate, constraint, ranking, decision,
-  and final-validation logic.
-- `lib/ai` owns structured model I/O and the Gemini/fallback implementations.
-- `lib/evaluation` owns expected outcomes and never feeds them into runtime
-  decisions.
-- `app/api/run` keeps provider credentials on the server.
+1. **Never let an LLM do calendar arithmetic**: Timezone conversions, buffer math, and overlap detection are 100% deterministic TypeScript domain logic.
+2. **Deterministic Offline Fallback**: Works immediately without an API key; when a `GEMINI_API_KEY` is provided, live intent extraction and candidate selection are enabled.
+3. **Transparent Evidence**: The UI displays structured reasons and evidence badges—never opaque model stream tokens or private chain-of-thought.
+4. **Interactive Sandbox**: Modify calendar events, toggle `Movable` vs `Fixed`, or inject conversation context to watch the engine adjust in real-time.
 
-## Local setup
+---
 
-Requires Node.js 22.13 or newer and npm.
+## Interactive Demo Flow for Vela Reviewers
+
+1. **Test the Core Scenario (Flight Recovery Buffer)**:
+   - Partner lands at 2:00 PM with a required 45-min post-flight buffer.
+   - 2:15 PM is rejected with a `travel_buffer` reason code.
+   - The 3:30 PM internal sync is identified as `Movable` based on recruiter priority policy, leading to a safe `ACT` recommendation.
+2. **Interactive Calendar Editing**:
+   - Click any event in the **Timeline View** or calendar list to change start/end times or switch category.
+   - Click the `Movable` badge on the 3:30 PM sync to make it `Fixed` → Observe Shadow immediately switch from `ACT` to `STOP`.
+3. **Adversarial Evaluation Suite (`/evals`)**:
+   - Run the full suite across 8 adversarial scenarios covering DST boundaries, timezone confusion, protected client calls, and buffer regressions.
+
+---
+
+## Local Setup & Development
+
+Requires Node.js 22.13+ and npm.
 
 ```bash
+# Clone and install dependencies
+git clone https://github.com/Pankaj4152/Slotly.git
+cd Slotly
 npm install
+
+# (Optional) Add your Gemini API key for live LLM extraction
 copy .env.example .env.local
+
+# Start development server
 npm run dev
 ```
 
-`GEMINI_API_KEY` is optional. Leave it blank for the deterministic demo.
+Open [http://localhost:3000](http://localhost:3000) for the scenario workspace and [http://localhost:3000/evals](http://localhost:3000/evals) for the evaluation harness.
 
-Open `http://localhost:3000` for the scenario and
-`http://localhost:3000/evals` for the evaluation suite.
+---
 
-## Verification
+## Verification & Quality Bar
 
 ```bash
-npm run format:check
-npm run lint
-npm run typecheck
-npm test
-npm run test:evaluations
-npm run build
+npm run format:check     # Oxfmt formatting check
+npm run lint             # Oxlint static analysis
+npm run typecheck        # TypeScript strict verification
+npm test                 # Vitest domain & scheduling tests (104 tests)
+npm run test:evaluations # Scenario evaluation runner
+npm run build            # Next.js / Vinext production build
 ```
 
-The suite covers travel buffers, protected events, working hours, permission to
-move meetings, optional attendees, recovery after conflict, and impossible
-windows. Provider failures and malformed responses are also covered by unit
-tests.
+---
 
-## Scope and limitations
+## Scope & Intentional Boundaries
 
-All conversations and calendar events are synthetic. Shadow does not connect to
-Vela, real calendars, email accounts, or production user data, and it does not
-execute calendar mutations. The project intentionally excludes authentication,
-databases, workflow infrastructure, and multiple model providers.
-
-The earlier Python evaluation prototype is preserved on
-`archive/eval-harness-prototype`. See [PROJECT_VELA.md](./PROJECT_VELA.md) for
-the implementation rationale and phased plan.
+Shadow is built as a focused proof-of-work artifact demonstrating scheduling reliability algorithms, deterministic guardrails, and evaluation harnesses. It intentionally simulates synthetic calendar/chat data and omits authentication, databases, and real Google/Outlook calendar write integrations.

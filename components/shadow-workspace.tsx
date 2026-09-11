@@ -232,9 +232,14 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               <FlaskConical aria-hidden="true" className="size-4" />
             </span>
             <div>
-              <p className="font-semibold tracking-[-0.025em]">Shadow</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold tracking-[-0.025em]">Shadow</p>
+                <span className="rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  Vela Reliability Lab
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
-                See why an AI scheduler acts—or stops
+                Pre-deployment evaluation for autonomous scheduling agents
               </p>
             </div>
           </div>
