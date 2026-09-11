@@ -34,22 +34,6 @@ import { CalendarTimeline } from './calendar-timeline';
 
 type ShadowWorkspaceProps = { scenarios: readonly ScenarioInput[] };
 
-const QUICK_PROMPTS = [
-  { label: 'Available after 4 PM', text: 'I can only make it after 4:00 PM.' },
-  {
-    label: 'Allow moving internal sync',
-    text: 'Feel free to move my 3:30 PM internal sync if needed.',
-  },
-  {
-    label: 'Protect external client',
-    text: 'My client meeting is strictly protected and cannot move.',
-  },
-  {
-    label: 'Request 45 min duration',
-    text: 'Could we do 45 minutes instead of 30?',
-  },
-];
-
 export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(
     scenarios[0]?.id,
@@ -417,25 +401,6 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                   </article>
                 );
               })}
-            </div>
-
-            {/* Quick Prompt Chips */}
-            <div className="mt-5 border-t border-border pt-4">
-              <span className="section-label block mb-2">
-                Quick test inputs
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {QUICK_PROMPTS.map((qp) => (
-                  <button
-                    className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/50 hover:bg-secondary hover:text-foreground"
-                    key={qp.label}
-                    onClick={() => addMessageWithText(qp.text)}
-                    type="button"
-                  >
-                    + {qp.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Add Conversation Form */}
