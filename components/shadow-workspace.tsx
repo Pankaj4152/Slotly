@@ -169,6 +169,10 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             <h1 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
               {scenario.title}
             </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose an example, review what Shadow knows, then run the safety
+              check.
+            </p>
           </div>
           <label className="min-w-[260px] sm:ml-auto">
             <span className="sr-only">Choose a scheduling scenario</span>
@@ -194,6 +198,29 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </Pill>
           </div>
         </section>
+
+        <ol className="mb-5 grid overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-3">
+          {[
+            ['1', 'Read the request', 'Conversation'],
+            ['2', 'Check constraints', 'Calendar + policies'],
+            ['3', 'Explain the outcome', 'Act, ask, or stop'],
+          ].map(([number, title, detail], index) => (
+            <li
+              className={`flex items-center gap-3 px-4 py-3 ${index > 0 ? 'border-t border-border sm:border-t-0 sm:border-l' : ''}`}
+              key={number}
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary font-mono text-xs font-bold text-primary-foreground">
+                {number}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">{title}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {detail}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
 
         <div className="grid gap-5 xl:grid-cols-[0.82fr_1.12fr_1.06fr]">
           <Panel title="Conversation" eyebrow="Input">
@@ -221,61 +248,74 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
               })}
             </div>
 
-            <form
-              className="mt-6 rounded-xl border border-border bg-secondary/45 p-3.5"
-              onSubmit={addCustomMessage}
-            >
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <label className="section-label" htmlFor="custom-speaker">
-                  Add custom context
-                </label>
-                {(customMessages[scenario.id]?.length ?? 0) > 0 ? (
-                  <button
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-destructive"
-                    onClick={clearCustomMessages}
-                    type="button"
-                  >
-                    <Trash2 aria-hidden="true" className="size-3.5" />
-                    Clear added
-                  </button>
-                ) : null}
-              </div>
-              <select
-                className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-sm outline-none focus:border-ring"
-                id="custom-speaker"
-                onChange={(event) => setSpeakerId(event.target.value)}
-                value={speakerId}
-              >
-                {scenario.participants.map((participant) => (
-                  <option key={participant.id} value={participant.id}>
-                    {participant.name} · {humanize(participant.role)}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                className="mt-2 min-h-20 w-full resize-y rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5 outline-none placeholder:text-muted-foreground focus:border-ring"
-                maxLength={500}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder="Add availability, a preference, or clarification…"
-                value={draft}
-              />
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">
-                  {draft.length}/500
+            <details className="group mt-6 overflow-hidden rounded-xl border border-border bg-secondary/45">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-sm font-semibold">
+                Add or clarify the conversation
+                <span className="text-xs font-medium text-muted-foreground group-open:hidden">
+                  Optional
                 </span>
-                <button
-                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={!draft.trim()}
-                  type="submit"
+                <span className="hidden text-xs font-medium text-muted-foreground group-open:block">
+                  Close
+                </span>
+              </summary>
+              <form
+                className="border-t border-border p-3.5"
+                onSubmit={addCustomMessage}
+              >
+                <div className="mb-2 flex items-center justify-end gap-3">
+                  {(customMessages[scenario.id]?.length ?? 0) > 0 ? (
+                    <button
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-destructive"
+                      onClick={clearCustomMessages}
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" className="size-3.5" />
+                      Clear added
+                    </button>
+                  ) : null}
+                </div>
+                <select
+                  className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-sm outline-none focus:border-ring"
+                  id="custom-speaker"
+                  onChange={(event) => setSpeakerId(event.target.value)}
+                  value={speakerId}
                 >
-                  <Send aria-hidden="true" className="size-3.5" />
-                  Add to chat
-                </button>
-              </div>
-            </form>
+                  {scenario.participants.map((participant) => (
+                    <option key={participant.id} value={participant.id}>
+                      {participant.name} · {humanize(participant.role)}
+                    </option>
+                  ))}
+                </select>
+                <textarea
+                  className="mt-2 min-h-20 w-full resize-y rounded-lg border border-border bg-card px-3 py-2 text-sm leading-5 outline-none placeholder:text-muted-foreground focus:border-ring"
+                  maxLength={500}
+                  onChange={(event) => setDraft(event.target.value)}
+                  placeholder="Add availability, a preference, or clarification…"
+                  value={draft}
+                />
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {draft.length}/500
+                  </span>
+                  <button
+                    className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!draft.trim()}
+                    type="submit"
+                  >
+                    <Send aria-hidden="true" className="size-3.5" />
+                    Add to chat
+                  </button>
+                </div>
+              </form>
+            </details>
 
-            <div className="mt-7 border-t border-border pt-5">
-              <p className="section-label">Active policies</p>
+            <details className="group mt-5 border-t border-border pt-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
+                Policies checked
+                <span className="rounded-full bg-secondary px-2 py-1 text-xs text-muted-foreground">
+                  {scenario.preferences.length}
+                </span>
+              </summary>
               <div className="mt-3 space-y-2.5">
                 {scenario.preferences.map((preference) => (
                   <div className="flex gap-2.5 text-sm" key={preference.id}>
@@ -291,7 +331,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                   </p>
                 ) : null}
               </div>
-            </div>
+            </details>
           </Panel>
 
           <Panel
