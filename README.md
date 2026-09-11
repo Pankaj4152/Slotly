@@ -3,7 +3,7 @@
 > **Proof-of-work project built for Vela's Founding Engineer role.**  
 > Investigates a core challenge in autonomous scheduling: _How can an AI agent make context-aware scheduling decisions, know when to abstain, and guarantee calendar safety before touching a real executive calendar?_
 
-[Open Live Demo](https://shadow-scheduling-lab.sparshgaur639.chatgpt.site) · [Evaluation Suite (`/evals`)](https://shadow-scheduling-lab.sparshgaur639.chatgpt.site/evals)
+[Open Live Demo](https://slotly.pankajgoyal.dev/) · [Evaluation Suite (`/evals`)](https://slotly.pankajgoyal.dev/evals) · [Backup Mirror](https://shadow-scheduling-lab.sparshgaur639.chatgpt.site)
 
 ---
 
