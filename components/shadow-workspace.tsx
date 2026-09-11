@@ -275,38 +275,6 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
       </header>
 
       <div className="mx-auto max-w-[1480px] px-4 py-5 sm:px-6">
-        {/* Scenario Carousel / Switcher Bar */}
-        <section className="mb-4">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {scenarios.map((option, index) => {
-              const isSelected = option.id === scenario.id;
-              return (
-                <button
-                  className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
-                    isSelected
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}
-                  key={option.id}
-                  onClick={() => selectScenario(option.id)}
-                  type="button"
-                >
-                  <span
-                    className={`grid size-4 place-items-center rounded-full text-[10px] ${
-                      isSelected
-                        ? 'bg-primary-foreground/20 text-primary-foreground'
-                        : 'bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <span className="max-w-[200px] truncate">{option.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
         {/* Scenario Header Info Banner */}
         <section className="mb-5 flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm sm:flex-row sm:items-center">
           <div className="min-w-0">
@@ -328,7 +296,24 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:ml-auto">
+          <label className="min-w-[260px] sm:ml-auto">
+            <span className="mb-1 block text-xs font-semibold text-muted-foreground">
+              Try an example
+            </span>
+            <select
+              className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+              onChange={(event) => selectScenario(event.target.value)}
+              value={scenario.id}
+            >
+              {scenarios.map((option, index) => (
+                <option key={option.id} value={option.id}>
+                  {index + 1}. {option.title}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {hasModifications ? (
               <button
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 font-semibold text-amber-900 transition hover:bg-amber-100"
@@ -336,7 +321,7 @@ export function ShadowWorkspace({ scenarios }: ShadowWorkspaceProps) {
                 title="Restore scenario to preset defaults"
                 type="button"
               >
-                <RotateCcw className="size-3.5" /> Reset modifications
+                <RotateCcw className="size-3.5" /> Reset
               </button>
             ) : null}
             <Pill icon={Clock3}>
